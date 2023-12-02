@@ -25,13 +25,8 @@ def parse_line_1(line):
     return game_id, True
 
 def parse_line_2(line):
-    colors = {
-        'red': [],
-        'green': [],
-        'blue': []
-        }
     min_cubes_needed = []
-    for c in colors:
+    for c in ['red', 'green', 'blue']:
         match = re.findall(f"\d+(?= {c})", line)
         max_cubes = max([int(e) for e in match])
         min_cubes_needed.append(max_cubes)
