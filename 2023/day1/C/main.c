@@ -20,16 +20,22 @@ unsigned concatenate(unsigned x, unsigned y) {
 }
 
 // define a function that processes a line
+// input is a pointer to a character -> character array?
 int process_line(char *line) {
     int first_num = 0;
     int second_num = 0;
     int found_first_int = 0;
     
-    size_t size = strlen(line);
+    // handle a case where the line may not be null terminated.
+    // unlikely here, but good to have just in case.
+    size_t size = strnlen(line, 2048);
+  
     for (int i = 0; i < size; i++) {
 
         if (isdigit(line[i]) && !found_first_int) {
             found_first_int = 1;
+            // line[i] is a character, represented by an integer.
+            // '0' is 48, '1' is 49, etc, so their difference is the actual number
             first_num = line[i] - '0';
             second_num = line[i] - '0';
 
@@ -58,27 +64,25 @@ int check_num_in_substring(char *line, char *str_to_check, int num) {
         fprintf(stderr, "substring cannot be larger than the string we're searching in.\n");
         return -2;
     }
-    //for (int i = 0; i < num_chr_in_line-num_chr_in_substring+1; i++) {
 
-        // found the start of a match
-        if (line[0] == str_to_check[0]) {
+    // found the start of a match
+    if (line[0] == str_to_check[0]) {
 
-            // loop through indices in the substring
-            for (j = 0; j < num_chr_in_substring; j++) {
+        // loop through indices in the substring
+        for (j = 0; j < num_chr_in_substring; j++) {
 
-                // check if there is not a match in substring
-                if (line[j] != str_to_check[j]) {
-                    break;
-                }
-            }
-
-            // If j is the same length as the number of characters we had to check,
-            // then that means all characters match and we've matched the string
-            if (j == num_chr_in_substring) {
-                return num;
+            // check if there is not a match in substring
+            if (line[j] != str_to_check[j]) {
+                break;
             }
         }
-    //}
+
+        // If j is the same length as the number of characters we had to check,
+        // then that means all characters match and we've matched the string
+        if (j == num_chr_in_substring) {
+            return num;
+        }
+    }
     return -1;
 }
 
@@ -94,6 +98,7 @@ struct word_pair check_for_str_nums(char *line, int use_reversed) {
 
     // strs is an array of pointers to a char (beginning of the string)
     char *strs[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
+
     
     if (use_reversed == 1) {
         for (int i = 0; i < 10; i++) {
@@ -152,58 +157,6 @@ char * get_slice(char *src, const size_t start, const size_t end) {
     
 }
 
-int process_line_version_2(char *line) {
-    int first_num = 0;
-    int second_num = 0;
-    int found_first_int = 0;
-    int str_to_num_res = 0;
-    struct word_pair wp;
-    size_t size = strlen(line);
-
-    printf("===========================\n");
-    printf("line is %s\n", line);
-    for (int i = 0; i < size; i++) {
-        
-        // take a substring of the line up to this point
-        char *slice = get_slice(line, i, strlen(line));
-        //printf("slice is %s\n", slice);
-        str_to_num_res = 0;
-
-        // check if we found a digit
-        if (isdigit(line[i]) && !found_first_int) {
-            found_first_int = 1;
-            first_num = line[i] - '0';
-            second_num = line[i] - '0';
-            //printf("found a num: %d\n", line[i] - '0');
-
-        } else if (isdigit(line[i])) {
-            second_num = line[i] - '0';
-            //printf("found a num: %d\n", line[i] - '0');
-
-        } else if (slice != NULL) {
-
-            wp = check_for_str_nums(slice, 0);
-
-            if ((wp.num > -1) && !found_first_int && (wp.name != NULL)) {
-                found_first_int = 1;
-                first_num = wp.num;
-                second_num = wp.num;
-                i += strlen(wp.name) - 1;
-                //printf("found a spelled out num: %d, %s\n", wp.num, wp.name);
-                
-            } else if ((wp.num > -1) && (wp.name != NULL)) {
-                second_num = wp.num;
-                i += strlen(wp.name) - 1;
-                //printf("found a spelled out num: %d, %s\n", wp.num, wp.name);
-            }
-        }
-    }
-    
-    printf("result = %d%d\n", first_num, second_num);
-    unsigned result = concatenate(first_num, second_num);
-    return result;
-}
-
 char * reverse_string(const char *str) {
     size_t len = strlen(str);
 
@@ -250,7 +203,7 @@ int find_next_number(char *line, int use_reversed) {
     return -1;
 }
 
-int process_line_version_3(char *line) {
+int process_line_version_2(char *line) {
 
     int first_num = -1;
     int second_num = -1;
@@ -311,7 +264,7 @@ int main() {
     printf("file opening successful\n");
 
     while (fgets(text, sizeof(text), fptr)) {
-        int num_this_line = process_line_version_3(text);
+        int num_this_line = process_line_version_2(text);
         total += num_this_line;
     }
     fclose(fptr);
