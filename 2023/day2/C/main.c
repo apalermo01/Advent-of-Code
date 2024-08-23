@@ -66,7 +66,10 @@ int get_id(char *line) {
     char *errormsg = malloc(1024* sizeof(int));
     regerror(match_value, &regex, errormsg, 1024);
     printf("matching error: %s", errormsg);
+    free(errormsg);
   }
+  
+  regfree(&regex);
   // set up a char array to hold the characters
   // char *id_chr = malloc(4*sizeof *id_chr);
   //int game_id = 0;
