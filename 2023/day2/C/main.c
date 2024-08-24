@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <regex.h>
@@ -49,39 +50,33 @@ int get_id(char *line) {
   int comp_value;
   int match_value;
 
-  comp_value = regcomp(&regex, "\d+(?=:)", 0);
-
-  if (comp_value == 0) {
-    printf("Regex  compiled successfully\n");
-  } else {
-    printf("compilation error");
+  comp_value = regcomp(&regex, "([[:digit:]]+):", REG_EXTENDED);
+  
+  if (comp_value != 0) {
+    fprintf(stderr, "regex compilation error");
     return -1;
   }
   
   match_value = regexec(&regex, line, 1, &regmatch, 0);
 
-  if (match_value == 0) {
-    printf("matching successful");
-  } else {
+  if (match_value != 0) {
     char *errormsg = malloc(1024* sizeof(int));
     regerror(match_value, &regex, errormsg, 1024);
     printf("matching error: %s", errormsg);
     free(errormsg);
+    return -1;
   }
   
   regfree(&regex);
-  // set up a char array to hold the characters
-  // char *id_chr = malloc(4*sizeof *id_chr);
-  //int game_id = 0;
-
-  //// loop backwards from the :
-  //for (int i = 5; i < 0; i--) {
-  //  if (isdigit(line[i])) {
-  //    if (game_id == )
-  //  }
-  //}
-
-  return -1;
+  
+  // now get the actual match
+  // we're only looking at matching a single character,
+  // so use the index rm_so
+  int rm_so = regmatch.rm_so;
+  int game_id = line[rm_so] - '0';
+  
+  printf("game id = %d\n", game_id);
+  return game_id;
 }
 
 
