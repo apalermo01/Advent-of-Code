@@ -9,7 +9,7 @@ int NUM_GREEN = 13;
 int NUM_BLUE = 14;
 int MAXLEN = 2048;
 int get_id(char *line);
-
+int get_color_counts(char *line, char *color);
 /* 
  * Determine whether or not a given game is possible
  * a line is structured like this: 
@@ -23,8 +23,10 @@ int process_line(char *line) {
   int num_green = 0;
   int num_blue = 0;
   
-  printf("line = %s", line);
-  
+  num_red += get_color_counts(line, "red");
+  num_green += get_color_counts(line, "green");
+  num_blue += get_color_counts(line, "blue");
+
   // exit condition
   if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
     return 0;
@@ -33,6 +35,16 @@ int process_line(char *line) {
   return id;
 }
 
+/* 
+ * For an arbitrary line and color, return the number of times that color
+ * is encountered. This will look for the pattern `# color`, which may
+ * occur an arbitrary number of times, and return the #. Returns 0
+ * in case of a failure
+ */
+int get_color_counts(char *line, char *color) {
+
+  return 0;
+}
 /*
  * Function to get the id of a Game
  */
