@@ -43,6 +43,52 @@ int process_line(char *line) {
  */
 int get_color_counts(char *line, char *color) {
 
+  // initialize some variables
+  regex_t regex;
+  regmatch_t regmatch;
+
+  int comp_value;
+  int match_value;
+
+  // validate inputs
+  if (line == NULL || color == NULL) {
+    fprintf(stderr, "line and color are null pointers");
+    return 0;
+  }
+
+  /*
+   * construct the regex string
+   * string format is "[[:digit:]]+(?= %s)" where %s is the string for pos lookahead
+   */
+  int colorlen = strnlen(color, 128);
+  char *start_of_regex = "([[:digit:]]+)";
+  if (colorlen > 126) { // don't remember if it's inclusive or exclusive
+    fprintf(stderr, "too many characters for color. 125 max");
+    return 0;
+  }
+
+  size_t regexlen = strlen(start_of_regex) + colorlen + 2;
+  char *expr = malloc(regexlen);
+  
+  // allocation failure
+  if (expr == NULL) {
+    fprintf(stderr, "error allocating memory for regex expression");
+    return 0;
+  }
+
+  // build concatenated string
+  sprintf(expr, "([[:digit:]]+) %s", color);
+
+  // now compile it
+  comp_value = regcomp(&regex, expr, REG_EXTENDED);
+  
+  if (comp_value != 0) {
+    fprintf(stderr, "regex compilation error\n");
+    free(expr);
+    return -1;
+  }
+
+  free(expr);
   return 0;
 }
 /*
