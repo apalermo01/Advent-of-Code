@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <regex.h>
 #include <string.h>
+#include <ctype.h>
+
+/* TODO: update regex matching to reliable extract multidigit numbers
+ */
 
 int NUM_RED = 12;
 int NUM_GREEN = 13;
@@ -10,6 +14,18 @@ int NUM_BLUE = 14;
 int MAXLEN = 2048;
 int get_id(char *line);
 int get_color_counts(char *line, char *color);
+
+unsigned concatenate(unsigned x, unsigned y) {
+    unsigned pow = 10;
+    while (y >= pow) {
+        pow *= 10;
+    }
+    return x * pow + y;
+}
+
+int extract_number(char *line, int se, int so) {
+  return 0;
+}
 /* 
  * Determine whether or not a given game is possible
  * a line is structured like this: 
@@ -26,12 +42,17 @@ int process_line(char *line) {
   num_red += get_color_counts(line, "red");
   num_green += get_color_counts(line, "green");
   num_blue += get_color_counts(line, "blue");
-
-  // exit condition
+  
+  printf("==============\n");
+  printf("line = %s", line);
+  printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);
+  // check if game is impossible
   if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
+    printf("this game is impossible\n\n");
     return 0;
   }
-
+  
+  printf("this game is possible\n\n");
   return id;
 }
 
@@ -47,8 +68,10 @@ int get_color_counts(char *line, char *color) {
   regex_t regex;
   regmatch_t regmatch;
 
-  int comp_value;
-  int match_value;
+  size_t max_matches = 32;
+
+  char match_value;
+  int total = 0;
 
   // validate inputs
   if (line == NULL || color == NULL) {
@@ -79,18 +102,59 @@ int get_color_counts(char *line, char *color) {
   // build concatenated string
   sprintf(expr, "([[:digit:]]+) %s", color);
 
-  // now compile it
-  comp_value = regcomp(&regex, expr, REG_EXTENDED);
-  
-  if (comp_value != 0) {
+  /* compile the regex */
+  if(regcomp(&regex, expr, REG_EXTENDED)) {
     fprintf(stderr, "regex compilation error\n");
     free(expr);
     return -1;
   }
 
+  /* 
+   * Parse matches
+   * referencing https://gist.github.com/ianmackinnon/3294587
+   * to get multiple matches
+   */
+
+  /* set cursor = line. Every time a match is found,
+   * cursor is a pointer to the first element of a char array representing the line
+   * every time we find a match, we'll increase cursor by offset,
+   * effectively moving it forward so the match isn't repeated
+   */
+  char * cursor;
+  cursor = line;
+  unsigned int m;
+
+  for (m = 0; m < max_matches; m++) {
+    if (regexec(&regex, cursor, 1, &regmatch, 0)) {
+      break; // no more matches
+    }
+
+    unsigned int g = 0;
+    unsigned int match_start = 0;
+    unsigned int match_end = 0;
+
+    match_start = regmatch.rm_so;           /* byte offset from start of string to 
+                                               start of substring */
+    match_end = regmatch.rm_eo;                /* bye offset from start of string to 
+                                               the first character after the end of 
+                                               the substring*/
+    // concat if there is a tens digit
+    match_value = cursor[match_start];
+    if (isdigit(cursor[match_start+1])) {
+      int singles = cursor[match_start+1] - '0';
+      int tens = match_value - '0';
+      match_value = concatenate(tens, singles);
+      total += match_value;
+    } else {
+      total += match_value - '0';
+    }
+    cursor += match_end;
+  }
+
   free(expr);
-  return 0;
+  return total;
 }
+
 /*
  * Function to get the id of a Game
  */
@@ -132,8 +196,7 @@ int get_id(char *line) {
   // so use the index rm_so
   int rm_so = regmatch.rm_so;
   int game_id = line[rm_so] - '0';
-  
-  printf("game id = %d\n", game_id);
+  printf("game id = %d\n", game_id); 
   return game_id;
 }
 
@@ -145,7 +208,8 @@ int main() {
   int total = 0;
   /* part 1 */ 
   // Open the file
-  if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {
+  //if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {
+  if ((fptr = fopen("../input_1.txt", "r")) == NULL) {
     fprintf(stderr, "Error opening file");
     free(fptr);
     exit(1);
