@@ -5,9 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-/* TODO: update regex matching to reliable extract multidigit numbers
- */
-
 int NUM_RED = 12;
 int NUM_GREEN = 13;
 int NUM_BLUE = 14;
@@ -15,17 +12,75 @@ int MAXLEN = 2048;
 int get_id(char *line);
 int get_color_counts(char *line, char *color);
 
+/*
+ * TODO: need to clean this up to handle more edge cases
+ * y = 0, x = 0 -> 100
+ */
 unsigned concatenate(unsigned x, unsigned y) {
     unsigned pow = 10;
     while (y >= pow) {
         pow *= 10;
     }
+    if (y == 0) {
+        pow *= 10;
+    }
     return x * pow + y;
 }
 
-int extract_number(char *line, int se, int so) {
-  return 0;
+struct regex_num {
+  int value;
+  int offset;
+};
+/*
+ * Runs a regex (pattern) on an input string with potentially multiple matches.
+ * returns the matched integer. This is built to handle up to max_num characters
+ */
+struct regex_num number_from_regex(char *line,
+                                   regex_t *pattern,
+                                   int max_digits) {
+  struct regex_num result;
+  result.value = 0;
+  result.offset = 0;
+
+  regmatch_t regmatch;
+  char * digitbuff = malloc(max_digits * sizeof(char));
+
+  if (digitbuff == NULL) {
+    fprintf(stderr, "memory allocation failed!");
+    return result;
+  }
+
+  if (regexec(pattern, line, 1, &regmatch, 0)) {
+    // no matches
+    return result;
+  }
+  
+  unsigned int match_start = regmatch.rm_so;
+  unsigned int match_end = regmatch.rm_eo;
+
+  int num_digits = 0;
+
+  while (isdigit(line[match_start+num_digits]) && (num_digits < max_digits)) {
+    digitbuff[num_digits] = line[match_start + num_digits];
+    num_digits ++;
+  }
+  printf("digitbuff = %s\n", digitbuff); 
+  int digit_position = num_digits-1;
+  int total = digitbuff[digit_position] - '0';
+  printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
+  while (digit_position > 0) {
+    digit_position --;
+    printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
+    total = concatenate(digitbuff[digit_position] - '0', total);
+    printf("total = %d\n", total);
+  }
+
+  result.value = total;
+  result.offset = match_end;
+  free(digitbuff);
+  return result;
 }
+
 /* 
  * Determine whether or not a given game is possible
  * a line is structured like this: 
@@ -34,18 +89,17 @@ int extract_number(char *line, int se, int so) {
  * return 0 otherwise
  */
 int process_line(char *line) {
-  int id = get_id(line);        // counter
-  int num_red = 0;    // number of observed colors
-  int num_green = 0;
-  int num_blue = 0;
-  
-  num_red += get_color_counts(line, "red");
-  num_green += get_color_counts(line, "green");
-  num_blue += get_color_counts(line, "blue");
-  
   printf("==============\n");
-  printf("line = %s", line);
+  printf("line = %s\n", line);
+
+  int id = get_id(line);
+  printf("id = %d\n", id); 
+  int num_red = get_color_counts(line, "red");
+  int num_green = get_color_counts(line, "green");
+  int num_blue = get_color_counts(line, "blue");
+  
   printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);
+
   // check if game is impossible
   if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
     printf("this game is impossible\n\n");
@@ -68,7 +122,7 @@ int get_color_counts(char *line, char *color) {
   regex_t regex;
   regmatch_t regmatch;
 
-  size_t max_matches = 32;
+  size_t max_matches = 2;
 
   char match_value;
   int total = 0;
@@ -125,33 +179,13 @@ int get_color_counts(char *line, char *color) {
   unsigned int m;
 
   for (m = 0; m < max_matches; m++) {
-    if (regexec(&regex, cursor, 1, &regmatch, 0)) {
-      break; // no more matches
-    }
-
-    unsigned int g = 0;
-    unsigned int match_start = 0;
-    unsigned int match_end = 0;
-
-    match_start = regmatch.rm_so;           /* byte offset from start of string to 
-                                               start of substring */
-    match_end = regmatch.rm_eo;                /* bye offset from start of string to 
-                                               the first character after the end of 
-                                               the substring*/
-    // concat if there is a tens digit
-    match_value = cursor[match_start];
-    if (isdigit(cursor[match_start+1])) {
-      int singles = cursor[match_start+1] - '0';
-      int tens = match_value - '0';
-      match_value = concatenate(tens, singles);
-      total += match_value;
-    } else {
-      total += match_value - '0';
-    }
-    cursor += match_end;
+    struct regex_num match_info = number_from_regex(cursor, &regex, 3); 
+    total += match_info.value;
+    cursor += match_info.offset;
   }
 
   free(expr);
+  regfree(&regex); 
   return total;
 }
 
@@ -167,7 +201,6 @@ int get_id(char *line) {
   }
 
   regex_t regex;
-  regmatch_t regmatch;
 
   int comp_value;
   int match_value;
@@ -178,25 +211,11 @@ int get_id(char *line) {
     fprintf(stderr, "regex compilation error");
     return -1;
   }
-  
-  match_value = regexec(&regex, line, 1, &regmatch, 0);
 
-  if (match_value != 0) {
-    char *errormsg = malloc(1024* sizeof(int));
-    regerror(match_value, &regex, errormsg, 1024);
-    printf("matching error: %s", errormsg);
-    free(errormsg);
-    return -1;
-  }
-  
-  regfree(&regex);
-  
-  // now get the actual match
-  // we're only looking at matching a single character,
-  // so use the index rm_so
-  int rm_so = regmatch.rm_so;
-  int game_id = line[rm_so] - '0';
-  printf("game id = %d\n", game_id); 
+  struct regex_num match_info = number_from_regex(line, &regex, 3);
+
+  int game_id = match_info.value;
+
   return game_id;
 }
 
@@ -206,6 +225,7 @@ int main() {
   FILE *fptr;
   char text[255];
   int total = 0;
+
   /* part 1 */ 
   // Open the file
   //if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {
