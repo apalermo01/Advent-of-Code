@@ -21,10 +21,34 @@ unsigned concatenate(unsigned x, unsigned y) {
     while (y >= pow) {
         pow *= 10;
     }
-    if (y == 0) {
+    if (x == 0) {
         pow *= 10;
     }
     return x * pow + y;
+}
+
+int string_to_num(char *str) {
+  //printf("------------\n");
+  int total = 0;
+  int pow = 1;
+
+  int num_digits = strnlen(str, 8);
+  int num;
+
+  //printf("num digits = %d\n", num_digits);
+  for(int i = num_digits; i >= 0; i--){
+    if (str[i] == '\0') continue;
+    num = str[i] - '0';
+    //printf("char = %c\n", str[i]);
+    //printf("num = %d\n", num);
+    total += pow * num;
+    //printf("new total = %d\n", total);
+    pow *= 10;
+    //printf("pow = %d\n", pow);
+  }
+
+  //printf("++++++++++++++\n");
+  return total;
 }
 
 struct regex_num {
@@ -64,16 +88,26 @@ struct regex_num number_from_regex(char *line,
     digitbuff[num_digits] = line[match_start + num_digits];
     num_digits ++;
   }
-  printf("digitbuff = %s\n", digitbuff); 
-  int digit_position = num_digits-1;
-  int total = digitbuff[digit_position] - '0';
-  printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
-  while (digit_position > 0) {
-    digit_position --;
-    printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
-    total = concatenate(digitbuff[digit_position] - '0', total);
-    printf("total = %d\n", total);
+
+  int i = num_digits;
+  while (i <= max_digits) {
+    digitbuff[i] = '\0';
+    i ++;
   }
+
+  //digitbuff = realloc(digitbuff, num_digits);
+  printf("digitbuff = %s\n", digitbuff); 
+  int total = string_to_num(digitbuff);
+  printf("total = %d\n", total);
+  //int digit_position = num_digits-1;
+  //int total = digitbuff[digit_position] - '0';
+  //printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
+  //while (digit_position > 0) {
+  //  digit_position --;
+  //  printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
+  //  total = concatenate(digitbuff[digit_position] - '0', total);
+  //  printf("total = %d\n", total);
+  //}
 
   result.value = total;
   result.offset = match_end;
