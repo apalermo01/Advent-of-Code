@@ -11,6 +11,7 @@ int NUM_BLUE = 14;
 int MAXLEN = 2048;
 int get_id(char *line);
 int get_color_counts(char *line, char *color);
+void advance_to_next_round(char *line, char *dest);
 
 int string_to_num(char *str) {
   int total = 0;
@@ -62,7 +63,7 @@ struct regex_num number_from_regex(char *line,
   unsigned int match_end = regmatch.rm_eo;
 
   int num_digits = 0;
-
+  
   while (isdigit(line[match_start+num_digits]) && (num_digits < max_digits)) {
     digitbuff[num_digits] = line[match_start + num_digits];
     num_digits ++;
@@ -92,25 +93,74 @@ struct regex_num number_from_regex(char *line,
  * return 0 otherwise
  */
 int process_line(char *line) {
-  //printf("==============\n");
-  //printf("line = %s\n", line);
 
   int id = get_id(line);
-  /*printf("id = %d\n", id); */
-  int num_red = get_color_counts(line, "red");
-  int num_green = get_color_counts(line, "green");
-  int num_blue = get_color_counts(line, "blue");
+  int num_red = 0;
+  int num_blue = 0;
+  int num_green = 0;
   
-  /*printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);*/
+  char * cursor = line;
+  char * next_cursor = malloc(strnlen(cursor, 1024) * sizeof(char));
+  // TODO: loop through the string and get all the chunks
+  while(next_cursor != NULL) {
+    num_red = get_color_counts(line, "red");
+    num_green = get_color_counts(line, "green");
+    num_blue = get_color_counts(line, "blue");
+    
 
-  // check if game is impossible
-  if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
-    /*printf("this game is impossible\n\n");*/
-    return 0;
+    // check if game is impossible
+    if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
+      /*printf("==============\n");*/
+      /*printf("line = %s\n", line);*/
+      /*printf("id = %d\n", id); */
+      /*printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);*/
+      /*printf("this game is impossible\n\n");*/
+      return 0;
+    }
+
+    // advance line to after the next ';'
+
+    advance_to_next_round(cursor, next_cursor);
+    cursor = next_cursor;
+  } 
+  //printf("this game is possible\n\n");
+  free(cursor);
+  free(next_cursor);
+  return id;
+}
+
+ /* Advance the pointer to the character after the next ';'
+  * If there is no ;, return a null pointer.
+  */
+void advance_to_next_round(char *line, char *dest) {
+  regex_t regex;
+  regmatch_t regmatch;
+  char *expr = ";";
+  
+  if (line == NULL || dest == NULL) {
+    fprintf(stderr, "advance_to_next_round: got null pointers for line and dest\n");
+    dest = NULL;
+    return;
   }
   
-  /*printf("this game is possible\n\n");*/
-  return id;
+  if(regcomp(&regex, expr, REG_EXTENDED)) {
+    fprintf(stderr, "advance_to_next_round: regex compilation error\n");
+    dest = NULL;
+    return;
+  }
+
+  if(regexec(&regex, line, 1, &regmatch, 0)) {
+    // no matches
+    dest = NULL;   
+    fprintf(stderr, "advance_to_next_round: regex matching failed\n");
+  }
+  
+  unsigned int match_start = regmatch.rm_so;
+  unsigned int match_end = regmatch.rm_eo;
+  
+  // now do the offset
+  dest = line + match_end;
+
 }
 
 /* 
@@ -125,14 +175,12 @@ int get_color_counts(char *line, char *color) {
   regex_t regex;
   regmatch_t regmatch;
 
-  size_t max_matches = 2;
-
   char match_value;
   int total = 0;
-
+  
   // validate inputs
   if (line == NULL || color == NULL) {
-    fprintf(stderr, "line and color are null pointers");
+    fprintf(stderr, "line and color are null pointers\n");
     return 0;
   }
 
@@ -163,7 +211,7 @@ int get_color_counts(char *line, char *color) {
   if(regcomp(&regex, expr, REG_EXTENDED)) {
     fprintf(stderr, "regex compilation error\n");
     free(expr);
-    return -1;
+    return 0;
   }
 
   /* 
@@ -180,16 +228,11 @@ int get_color_counts(char *line, char *color) {
   char * cursor;
   cursor = line;
   unsigned int m;
-
-  for (m = 0; m < max_matches; m++) {
-    struct regex_num match_info = number_from_regex(cursor, &regex, 3); 
-    total += match_info.value;
-    cursor += match_info.offset;
-  }
+  struct regex_num match_info = number_from_regex(cursor, &regex, 3);
 
   free(expr);
   regfree(&regex); 
-  return total;
+  return match_info.value;
 }
 
 /*
@@ -231,7 +274,7 @@ int main() {
 
   /* part 1 */ 
   // Open the file
-  //if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {
+  /*if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {*/
   if ((fptr = fopen("../input_1.txt", "r")) == NULL) {
     fprintf(stderr, "Error opening file");
     free(fptr);
