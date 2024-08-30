@@ -12,42 +12,20 @@ int MAXLEN = 2048;
 int get_id(char *line);
 int get_color_counts(char *line, char *color);
 
-/*
- * TODO: need to clean this up to handle more edge cases
- * y = 0, x = 0 -> 100
- */
-unsigned concatenate(unsigned x, unsigned y) {
-    unsigned pow = 10;
-    while (y >= pow) {
-        pow *= 10;
-    }
-    if (x == 0) {
-        pow *= 10;
-    }
-    return x * pow + y;
-}
-
 int string_to_num(char *str) {
-  //printf("------------\n");
   int total = 0;
   int pow = 1;
 
   int num_digits = strnlen(str, 8);
   int num;
 
-  //printf("num digits = %d\n", num_digits);
   for(int i = num_digits; i >= 0; i--){
     if (str[i] == '\0') continue;
     num = str[i] - '0';
-    //printf("char = %c\n", str[i]);
-    //printf("num = %d\n", num);
     total += pow * num;
-    //printf("new total = %d\n", total);
     pow *= 10;
-    //printf("pow = %d\n", pow);
   }
 
-  //printf("++++++++++++++\n");
   return total;
 }
 
@@ -55,6 +33,7 @@ struct regex_num {
   int value;
   int offset;
 };
+
 /*
  * Runs a regex (pattern) on an input string with potentially multiple matches.
  * returns the matched integer. This is built to handle up to max_num characters
@@ -95,23 +74,13 @@ struct regex_num number_from_regex(char *line,
     i ++;
   }
 
-  //digitbuff = realloc(digitbuff, num_digits);
-  printf("digitbuff = %s\n", digitbuff); 
   int total = string_to_num(digitbuff);
-  printf("total = %d\n", total);
-  //int digit_position = num_digits-1;
-  //int total = digitbuff[digit_position] - '0';
-  //printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
-  //while (digit_position > 0) {
-  //  digit_position --;
-  //  printf("digit position = %d, digitbuff@position = %c\n", digit_position, digitbuff[digit_position]);
-  //  total = concatenate(digitbuff[digit_position] - '0', total);
-  //  printf("total = %d\n", total);
-  //}
 
   result.value = total;
   result.offset = match_end;
+
   free(digitbuff);
+
   return result;
 }
 
@@ -123,24 +92,24 @@ struct regex_num number_from_regex(char *line,
  * return 0 otherwise
  */
 int process_line(char *line) {
-  printf("==============\n");
-  printf("line = %s\n", line);
+  //printf("==============\n");
+  //printf("line = %s\n", line);
 
   int id = get_id(line);
-  printf("id = %d\n", id); 
+  /*printf("id = %d\n", id); */
   int num_red = get_color_counts(line, "red");
   int num_green = get_color_counts(line, "green");
   int num_blue = get_color_counts(line, "blue");
   
-  printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);
+  /*printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);*/
 
   // check if game is impossible
   if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
-    printf("this game is impossible\n\n");
+    /*printf("this game is impossible\n\n");*/
     return 0;
   }
   
-  printf("this game is possible\n\n");
+  /*printf("this game is possible\n\n");*/
   return id;
 }
 
