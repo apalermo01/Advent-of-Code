@@ -11,7 +11,7 @@ int NUM_BLUE = 14;
 int MAXLEN = 2048;
 int get_id(char *line);
 int get_color_counts(char *line, char *color);
-void advance_to_next_round(char *line, char *dest);
+void advance_to_next_round(char *line, char **dest);
 
 int string_to_num(char *str) {
   int total = 0;
@@ -98,9 +98,15 @@ int process_line(char *line) {
   int num_red = 0;
   int num_blue = 0;
   int num_green = 0;
-  
-  char * cursor = line;
-  char * next_cursor = malloc(strnlen(cursor, 1024) * sizeof(char));
+  const size_t buffer_size = 1024; 
+
+  char *cursor = line;
+  char *next_cursor = malloc(buffer_size * sizeof(char));
+  if (next_cursor == NULL) {
+    fprintf(stderr, "process_line: failed to allocate memory\n");
+    return -1;
+
+  }
   // TODO: loop through the string and get all the chunks
   while(next_cursor != NULL) {
     num_red = get_color_counts(line, "red");
@@ -115,16 +121,18 @@ int process_line(char *line) {
       /*printf("id = %d\n", id); */
       /*printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);*/
       /*printf("this game is impossible\n\n");*/
+      free(next_cursor);
       return 0;
     }
 
     // advance line to after the next ';'
 
-    advance_to_next_round(cursor, next_cursor);
-    cursor = next_cursor;
+    advance_to_next_round(cursor, &next_cursor);
+    if (next_cursor != NULL) {
+      cursor = next_cursor;
+    }
   } 
-  //printf("this game is possible\n\n");
-  free(cursor);
+ 
   free(next_cursor);
   return id;
 }
@@ -132,35 +140,32 @@ int process_line(char *line) {
  /* Advance the pointer to the character after the next ';'
   * If there is no ;, return a null pointer.
   */
-void advance_to_next_round(char *line, char *dest) {
+void advance_to_next_round(char *line, char **dest) {
+
+  if (line == NULL || dest == NULL) {
+    fprintf(stderr, "advance_to_next_round: got null pointers for line and dest\n");
+    return;
+  }
+  
   regex_t regex;
   regmatch_t regmatch;
   char *expr = ";";
   
-  if (line == NULL || dest == NULL) {
-    fprintf(stderr, "advance_to_next_round: got null pointers for line and dest\n");
-    dest = NULL;
-    return;
-  }
-  
-  if(regcomp(&regex, expr, REG_EXTENDED)) {
+  if(regcomp(&regex, expr, REG_EXTENDED) != 0) {
     fprintf(stderr, "advance_to_next_round: regex compilation error\n");
     dest = NULL;
     return;
   }
 
-  if(regexec(&regex, line, 1, &regmatch, 0)) {
+  if(regexec(&regex, line, 1, &regmatch, 0) != 0) {
     // no matches
-    dest = NULL;   
-    fprintf(stderr, "advance_to_next_round: regex matching failed\n");
-  }
-  
-  unsigned int match_start = regmatch.rm_so;
-  unsigned int match_end = regmatch.rm_eo;
-  
-  // now do the offset
-  dest = line + match_end;
+    //fprintf(stderr, "advance_to_next_round: regex matching failed\n");
+    *dest = NULL;   
 
+  } else {
+    *dest = (char *)(line + regmatch.rm_eo);
+  }
+  regfree(&regex);
 }
 
 /* 
