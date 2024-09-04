@@ -139,6 +139,46 @@ int process_line(char *line) {
   return id;
 }
 
+/*
+ * For each set of games listed out in line, determine the fewest number of cubes
+ * needed to make the set of games possible. In other words, find the maximum value
+ * of red, green, and blue from each set. Return the Power set of these - aka
+ * their product
+ */
+int process_line_version2(char *line) {
+
+  int max_red = 0;
+  int num_red_this_game = 0;
+  int max_blue = 0;
+  int num_blue_this_game = 0;
+  int max_green = 0;
+  int num_green_this_game = 0;
+  int prod = 1;
+
+  const size_t buffer_size = 1024; 
+
+  char *cursor = line;
+
+  while(cursor != NULL) {
+    num_red_this_game = get_color_counts(cursor, "red");
+    num_green_this_game = get_color_counts(cursor, "green");
+    num_blue_this_game = get_color_counts(cursor, "blue");
+
+    if (num_red_this_game > max_red) max_red = num_red_this_game;
+    if (num_blue_this_game > max_blue) max_blue = num_blue_this_game;
+    if (num_green_this_game > max_green) max_green = num_green_this_game;
+
+    // advance line to after the next ';'
+
+    advance_to_next_round(cursor, &cursor);
+  } 
+
+  prod = max_red * max_blue * max_green;
+
+  return prod;
+ 
+}
+
  /* Advance the pointer to the character after the next ';'
   * If there is no ;, return a null pointer.
   */
@@ -278,7 +318,11 @@ int main() {
   // declare some vars
   FILE *fptr;
   char text[255];
-  int total = 0;
+  int total_part1 = 0;
+  int total_part2 = 0;
+
+  int total_this_line_part1;
+  int total_this_line_part2;
 
   /* part 1 */ 
   // Open the file
@@ -291,10 +335,13 @@ int main() {
   printf("File opening successful\n");
 
   while (fgets(text, sizeof(text), fptr)) {
-    int num_this_line = process_line(text);
-    total += num_this_line;
+    total_this_line_part1 = process_line(text);
+    total_this_line_part2 = process_line_version2(text);
+    total_part1 += total_this_line_part1;
+    total_part2 += total_this_line_part2;
   }
   fclose(fptr);
-  printf("total part 1: %d\n", total);
+  printf("total part 1: %d\n", total_part1);
+  printf("total part 2: %d\n", total_part2);
   return 0;
 }
