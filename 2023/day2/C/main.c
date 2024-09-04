@@ -5,13 +5,24 @@
 #include <string.h>
 #include <ctype.h>
 
+// constants
 int NUM_RED = 12;
 int NUM_GREEN = 13;
 int NUM_BLUE = 14;
 int MAXLEN = 2048;
+
+// types and prototypes
+struct regex_num {
+  int value;
+  int offset;
+};
+
 int get_id(char *line);
 int get_color_counts(char *line, char *color);
 void advance_to_next_round(char *line, char **dest);
+int string_to_num(char *str);
+struct regex_num number_from_reges(char *line, regex_t *pattern, int max_digits);
+int process_line(char *line);
 
 int string_to_num(char *str) {
   int total = 0;
@@ -30,11 +41,6 @@ int string_to_num(char *str) {
   return total;
 }
 
-struct regex_num {
-  int value;
-  int offset;
-};
-
 /*
  * Runs a regex (pattern) on an input string with potentially multiple matches.
  * returns the matched integer. This is built to handle up to max_num characters
@@ -42,23 +48,35 @@ struct regex_num {
 struct regex_num number_from_regex(char *line,
                                    regex_t *pattern,
                                    int max_digits) {
+
+  // init some variables
   struct regex_num result;
   result.value = 0;
   result.offset = 0;
 
   regmatch_t regmatch;
+
+  /* 
+   * digitbuff is a char buffer that holds a string representation of the 
+   * integers for a specific mathc. For example,
+   * if line is "abc1def", then digitbuff is "1"
+   * if line is "abc123def", then digitbuff is "123".
+   * The purpose of this is to isolate the digits in the match
+   * so that the concat function can take over and get the actual number
+   */
   char * digitbuff = malloc(max_digits * sizeof(char));
 
   if (digitbuff == NULL) {
     fprintf(stderr, "memory allocation failed!");
     return result;
   }
-
+  
+  // no matches
   if (regexec(pattern, line, 1, &regmatch, 0)) {
-    // no matches
     return result;
   }
-  
+ 
+  // parse the matches
   unsigned int match_start = regmatch.rm_so;
   unsigned int match_end = regmatch.rm_eo;
 
@@ -74,7 +92,8 @@ struct regex_num number_from_regex(char *line,
     digitbuff[i] = '\0';
     i ++;
   }
-
+  
+  // do the concatenation and return the results
   int total = string_to_num(digitbuff);
 
   result.value = total;
@@ -101,39 +120,22 @@ int process_line(char *line) {
   const size_t buffer_size = 1024; 
 
   char *cursor = line;
-  char *next_cursor = malloc(buffer_size * sizeof(char));
-  if (next_cursor == NULL) {
-    fprintf(stderr, "process_line: failed to allocate memory\n");
-    return -1;
 
-  }
-  // TODO: loop through the string and get all the chunks
-  while(next_cursor != NULL) {
-    num_red = get_color_counts(line, "red");
-    num_green = get_color_counts(line, "green");
-    num_blue = get_color_counts(line, "blue");
+  while(cursor != NULL) {
+    num_red = get_color_counts(cursor, "red");
+    num_green = get_color_counts(cursor, "green");
+    num_blue = get_color_counts(cursor, "blue");
     
-
     // check if game is impossible
     if ((num_red > NUM_RED) || (num_green > NUM_GREEN) || (num_blue > NUM_BLUE)) {
-      /*printf("==============\n");*/
-      /*printf("line = %s\n", line);*/
-      /*printf("id = %d\n", id); */
-      /*printf("red = %d; green = %d; blue = %d\n", num_red, num_green, num_blue);*/
-      /*printf("this game is impossible\n\n");*/
-      free(next_cursor);
       return 0;
     }
 
     // advance line to after the next ';'
 
-    advance_to_next_round(cursor, &next_cursor);
-    if (next_cursor != NULL) {
-      cursor = next_cursor;
-    }
+    advance_to_next_round(cursor, &cursor);
   } 
  
-  free(next_cursor);
   return id;
 }
 
@@ -144,6 +146,7 @@ void advance_to_next_round(char *line, char **dest) {
 
   if (line == NULL || dest == NULL) {
     fprintf(stderr, "advance_to_next_round: got null pointers for line and dest\n");
+    dest = NULL;
     return;
   }
   
@@ -152,14 +155,14 @@ void advance_to_next_round(char *line, char **dest) {
   char *expr = ";";
   
   if(regcomp(&regex, expr, REG_EXTENDED) != 0) {
+    // regex didn't compile
     fprintf(stderr, "advance_to_next_round: regex compilation error\n");
     dest = NULL;
     return;
   }
 
   if(regexec(&regex, line, 1, &regmatch, 0) != 0) {
-    // no matches
-    //fprintf(stderr, "advance_to_next_round: regex matching failed\n");
+    // no more matches
     *dest = NULL;   
 
   } else {
@@ -279,7 +282,6 @@ int main() {
 
   /* part 1 */ 
   // Open the file
-  /*if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {*/
   if ((fptr = fopen("../input_1.txt", "r")) == NULL) {
     fprintf(stderr, "Error opening file");
     free(fptr);
