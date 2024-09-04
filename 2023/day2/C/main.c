@@ -23,6 +23,7 @@ void advance_to_next_round(char *line, char **dest);
 int string_to_num(char *str);
 struct regex_num number_from_reges(char *line, regex_t *pattern, int max_digits);
 int process_line(char *line);
+int process_line_version2(char *line);
 
 int string_to_num(char *str) {
   int total = 0;
@@ -57,6 +58,7 @@ struct regex_num number_from_regex(char *line,
   regmatch_t regmatch;
 
   /* 
+  printf("total part 1: %d\n", total_part1);
    * digitbuff is a char buffer that holds a string representation of the 
    * integers for a specific mathc. For example,
    * if line is "abc1def", then digitbuff is "1"
