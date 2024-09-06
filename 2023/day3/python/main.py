@@ -1,6 +1,6 @@
 import argparse
 import re
-from typing import List
+from typing import List, Dict
 
 
 def parse_line_1(line):
@@ -45,10 +45,39 @@ def generate_matches(line):
     return matches
 
 
-def get_part_nums(line_below, this_line, line_above):
+def symbol_nearby(match: Dict,
+                  line_below: str,
+                  this_line: str,
+                  line_above: str):
+    print("+++++++++++++++++++++")
+    print("match = ", match)
+    print("line below = ", line_below)
+    print("this line = ", this_line)
+    print("line above = ", line_above)
 
+    for line in [line_below, this_line, line_above]:
+        for char in range(match['start_idx'], match['end_idx']):
+            if (not line[char].isdigit() and line[char] != '.'):
+                print("adding ths part number to sum")
+                return True
+
+    print("not adding this part number to sum")
+    print("+++++++++++++++++++++")
+    return False
+
+
+def get_part_nums(line_below, this_line, line_above):
+    part_nums = []
+
+    # grab matches
     matches = generate_matches(this_line)
-    return 0
+
+    for match in matches:
+
+        if (symbol_nearby(match, line_below, this_line, line_above)):
+            part_nums.append(match['value'])
+
+    return sum(part_nums)
 
 
 def problem_1(lines: List[str]) -> int:
