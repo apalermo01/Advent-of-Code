@@ -95,8 +95,137 @@ def problem_1(lines: List[str]) -> int:
     return sum(part_nums)
 
 
+def has_two_numbers(line_below, this_line, line_above, index):
+    """
+    1 2 3
+    4 * 5
+    6 7 8
+
+    need to count the distinct number of numbers adjacent to the *.
+    """
+
+    # get the number of characters that aren't digits:
+    def _num_non_digit(line): return sum(
+        [1 if not e.isdigit() else 0 for e in line])
+
+    num_adjacent_numbers = 0
+    if index > 0 and this_line[index-1].isdigit():
+        num_adjacent_numbers += 1
+
+    if index+1 < len(this_line) and this_line[index+1].isdigit():
+        num_adjacent_numbers += 1
+
+    # same logic for above and below
+    for line in [line_below, line_above]:
+
+        # pick out the exact segment we're working with
+        # normally, this will be 3 characters, but 2 if we're at the beginning
+        # or end of the line
+        if index == 0:
+            seg = line[index:index+2]
+        elif index == len(this_line) - 1:
+            seg = line[index-1:index+1]
+        else:
+            seg = line[index-1:index+2]
+
+        num_non_digit = _num_non_digit(seg)
+
+        if num_non_digit == 0:
+            num_adjacent_numbers += 1
+        elif num_non_digit == 1 and len(seg) == 2:
+            num_adjacent_numbers += 1
+        elif num_non_digit == 1 and not seg[1].isdigit():
+            num_adjacent_numbers += 2
+        elif num_non_digit == 1:
+            num_adjacent_numbers += 1
+        elif num_non_digit == 2 and len(seg) == 3:
+            num_adjacent_numbers += 1
+    return num_adjacent_numbers == 2
+
+
+def find_number_in_line(line, position, index):
+    """For a given line and position, parse out the number.
+
+    position=beginning: line[0] is the start of a number 
+    position=end: line[-1] is the end of a number 
+    position=middle, line[index] is part of the number but we don't know how
+        far out it goes in either direction.
+    """
+
+    if position == 'beginning':
+        number_str = ''
+        i = 0
+        while line[i].isdigit() and i < len(line):
+            number_str += line[i]
+            i += 1
+
+    elif position == 'end':
+        number_str = ''*5
+        i = -1
+        while line[i].isdigit() and math.abs(i) < len(line) and i >= -5:
+            number_str[i] = line[i]
+            i -= 1 
+        
+    else:
+        number_str = ''*10
+        middle = 5
+
+
+
+        
+
+
+def find_gear_ratios(line_below, this_line, line_above, index):
+    """this_line[index] is a *, two of the positions 1-8 have a number:
+
+    1 2 3
+    4 * 5
+    6 7 8
+
+    The goal is to figure out the complete number from these positions
+    """
+
+
+def get_gear_ratios(line_below, this_line, line_above):
+    """Look for all instances of '*' in this_line.
+       if there are 2 numbers adjacent to the *, then multiply them together"""
+
+    # loop through all characters in this line and look for a '*'.
+    # (sub function) if one is found, check if there are 2 numbers next to it
+    # (sub function) use regex to parse out what those full numbers are
+    gear_ratios = []
+    print("="*80)
+    print("abv: ", line_above)
+    print("ths: ", this_line)
+    print("bel: ", line_below)
+    for i, char in enumerate(this_line):
+        if char == '*' and \
+                has_two_numbers(line_below, this_line, line_above, i):
+            gear_ratios.append(
+                find_gear_ratios(line_above, line_below, this_line, i))
+    return 0
+
+
 def problem_2(lines):
-    pass
+    part_nums = []
+
+    for row_idx in range(len(lines)):
+        # grab this line and the one above / below
+        this_line = lines[row_idx]
+        if row_idx == 0:
+            line_above = '.'*len(this_line)
+        else:
+            line_above = lines[row_idx-1]
+
+        if row_idx == len(lines) - 1:
+            line_below = '.'*len(this_line)
+        else:
+            line_below = lines[row_idx+1]
+
+        # now get all the part numbers from this line
+        part_nums.append(get_gear_ratios(line_below, this_line, line_above))
+
+    return sum(part_nums)
 
 
 def main():
