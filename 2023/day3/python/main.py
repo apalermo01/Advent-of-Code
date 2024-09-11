@@ -1,14 +1,7 @@
 import argparse
 import re
 from typing import List, Dict
-
-
-def parse_line_1(line):
-    pass
-
-
-def parse_line_2(line):
-    pass
+import math
 
 
 def generate_matches(line):
@@ -102,6 +95,8 @@ def has_two_numbers(line_below, this_line, line_above, index):
     6 7 8
 
     need to count the distinct number of numbers adjacent to the *.
+
+    TODO: expand this function to include information about where the digit is located in the string
     """
 
     # get the number of characters that aren't digits:
@@ -109,11 +104,15 @@ def has_two_numbers(line_below, this_line, line_above, index):
         [1 if not e.isdigit() else 0 for e in line])
 
     num_adjacent_numbers = 0
+    num_positions = []
+
     if index > 0 and this_line[index-1].isdigit():
         num_adjacent_numbers += 1
+        num_positions.append([4, 'end'])
 
     if index+1 < len(this_line) and this_line[index+1].isdigit():
         num_adjacent_numbers += 1
+        num_positions.append([5, 'end'])
 
     # same logic for above and below
     for line in [line_below, line_above]:
@@ -164,15 +163,25 @@ def find_number_in_line(line, position, index):
         i = -1
         while line[i].isdigit() and math.abs(i) < len(line) and i >= -5:
             number_str[i] = line[i]
-            i -= 1 
-        
+            i -= 1
+
     else:
         number_str = ''*10
-        middle = 5
+        i = 5
 
+        # search backwards
+        while i > 0 and index-i >= 0 and line[index-i].isdigit():
+            number_str[i] = line[index-i]
+            i -= 1
 
+        i = 5
 
-        
+        # search forwards
+        while i < 10 and index + i <= len(line) and line[index+i].isdigit():
+            number_str[i] = line[index+i]
+            i += 1
+
+    print("number str = ", number_str)
 
 
 def find_gear_ratios(line_below, this_line, line_above, index):
