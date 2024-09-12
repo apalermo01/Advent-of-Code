@@ -1,7 +1,10 @@
 import argparse
 import re
 from typing import List, Dict
-import math
+import logging
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 
 def generate_matches(line):
@@ -88,70 +91,17 @@ def problem_1(lines: List[str]) -> int:
     return sum(part_nums)
 
 
-def has_two_numbers(line_below, this_line, line_above, index):
-    """
-    1 2 3
-    4 * 5
-    6 7 8
-
-    need to count the distinct number of numbers adjacent to the *.
-
-    TODO: expand this function to include information about where the digit is located in the string
-    """
-
-    # get the number of characters that aren't digits:
-    def _num_non_digit(line): return sum(
-        [1 if not e.isdigit() else 0 for e in line])
-
-    num_adjacent_numbers = 0
-    num_positions = []
-
-    if index > 0 and this_line[index-1].isdigit():
-        num_adjacent_numbers += 1
-        num_positions.append([4, 'end'])
-
-    if index+1 < len(this_line) and this_line[index+1].isdigit():
-        num_adjacent_numbers += 1
-        num_positions.append([5, 'end'])
-
-    # same logic for above and below
-    for line in [line_below, line_above]:
-
-        # pick out the exact segment we're working with
-        # normally, this will be 3 characters, but 2 if we're at the beginning
-        # or end of the line
-        if index == 0:
-            seg = line[index:index+2]
-        elif index == len(this_line) - 1:
-            seg = line[index-1:index+1]
-        else:
-            seg = line[index-1:index+2]
-
-        num_non_digit = _num_non_digit(seg)
-
-        if num_non_digit == 0:
-            num_adjacent_numbers += 1
-        elif num_non_digit == 1 and len(seg) == 2:
-            num_adjacent_numbers += 1
-        elif num_non_digit == 1 and not seg[1].isdigit():
-            num_adjacent_numbers += 2
-        elif num_non_digit == 1:
-            num_adjacent_numbers += 1
-        elif num_non_digit == 2 and len(seg) == 3:
-            num_adjacent_numbers += 1
-    return num_adjacent_numbers == 2
-
-
-def find_number_in_line(line, position, index):
+def find_number_in_line(line, position, index=None):
     """For a given line and position, parse out the number.
 
-    position=beginning: line[0] is the start of a number 
-    position=end: line[-1] is the end of a number 
+    position=start: line[0] is the start of a number
+    position=end: line[-1] is the end of a number
     position=middle, line[index] is part of the number but we don't know how
         far out it goes in either direction.
     """
-
-    if position == 'beginning':
+    # logger.info("running find number in line")
+    if position == 'start':
+        # print("searching from start")
         number_str = ''
         i = 0
         while line[i].isdigit() and i < len(line):
@@ -159,40 +109,137 @@ def find_number_in_line(line, position, index):
             i += 1
 
     elif position == 'end':
-        number_str = ''*5
+        # print("searching from end")
+        number_str = ['']*5
         i = -1
-        while line[i].isdigit() and math.abs(i) < len(line) and i >= -5:
+        while line[i].isdigit() and abs(i) < len(line) and i >= -5:
+            # print("line @ i = ", line[i])
             number_str[i] = line[i]
             i -= 1
 
     else:
-        number_str = ''*10
+        # print("searching from middle")
+        # print("line = ", line)
+        # print("index = ", index)
+
+        number_str = ['']*10
         i = 5
+        offset_from_center = 0
 
         # search backwards
-        while i > 0 and index-i >= 0 and line[index-i].isdigit():
-            number_str[i] = line[index-i]
-            i -= 1
+        # start from line @ index and i = 5 (middle of string to write to)
+        # at each iteration, increase the offset
+        # read from line @ index - offset to number_str @ i - offset
+        # the first condition in the where statement checks that we haven't
+        # hit the start of the string to write to
+        # the second condition checks that we haven't hit the start of the
+        # input string.
+        while i-offset_from_center > 0 and \
+                index-offset_from_center >= 0 and \
+                line[index-offset_from_center].isdigit():
+            # print("line @ index - offset", line[index-offset_from_center])
+            number_str[i-offset_from_center] = line[index-offset_from_center]
+            offset_from_center += 1
 
+        # reset counters
         i = 5
+        offset_from_center = 0
 
         # search forwards
-        while i < 10 and index + i <= len(line) and line[index+i].isdigit():
-            number_str[i] = line[index+i]
-            i += 1
+        while i+offset_from_center < 10 and \
+                index + offset_from_center <= len(line) and \
+                line[index+offset_from_center].isdigit():
+            # print("line @ index + offset", line[index+offset_from_center])
+            number_str[i+offset_from_center] = line[index+offset_from_center]
+            offset_from_center += 1
 
-    print("number str = ", number_str)
+    # print("number str = ", number_str)
+    number_str = ''.join(number_str).strip()
+    number = int(number_str)
+    # print("number = ", number)
+    # print("-"*80)
+    return number
 
 
-def find_gear_ratios(line_below, this_line, line_above, index):
-    """this_line[index] is a *, two of the positions 1-8 have a number:
-
+def get_numbers(line_below, this_line, line_above, index):
+    """
     1 2 3
     4 * 5
     6 7 8
 
-    The goal is to figure out the complete number from these positions
+    need to count the distinct number of numbers adjacent to the *.
+
+    Handle this in a series of cases. Look at positions 1-5 only, positions
+    6,7,8 has the same logic as 1,2,3
+
+    1. 1 only
+    2. 1 2
+    3. 1 2 3
+    4. 2 only
+    5. 2 3
+    6. 3 only
+    7. 1 and 3 only
+    8. 4 only
+    9. 5 only
     """
+
+    def which_digits(line): return [
+        line[0].isdigit(), line[1].isdigit(), line[2].isdigit()]
+
+    numbers = []
+    # print("+"*80)
+    # print("running get numbers")
+
+    # same logic for above and below
+    for line in [line_below, line_above]:
+        # print("line = ", line)
+        seg = line[index-1:index+2]
+        # print("segment = ", seg)
+        # print("which digits = ", which_digits(seg))
+
+        match which_digits(seg):
+
+            case [True, False, False]:
+                numbers.append(find_number_in_line(
+                    line[:index], 'end', None))
+
+            case [True, True, False]:
+                numbers.append(find_number_in_line(
+                    line[:index+1], 'end', None))
+
+            case [True, True, True]:
+                numbers.append(find_number_in_line(
+                    line, 'middle', index))
+
+            case [False, True, False]:
+                numbers.append(int(seg[1]))
+
+            case [False, True, True]:
+                numbers.append(find_number_in_line(
+                    line[index:], 'start', None))
+
+            case [False, False, True]:
+                numbers.append(find_number_in_line(
+                    line[index+1:], 'start', None))
+
+            case [True, False, True]:
+                numbers.append(find_number_in_line(
+                    line[index+1:], 'start', None))
+                numbers.append(find_number_in_line(
+                    line[:index], 'end', None))
+
+    # position 4
+    if this_line[index-1].isdigit():
+        # print("position 4")
+        numbers.append(find_number_in_line(this_line[:index], 'end', None))
+
+    # position 5
+    if this_line[index+1].isdigit():
+        # print("position 5")
+        numbers.append(find_number_in_line(this_line[index+1:], 'start', None))
+    # print("numbers = ", numbers)
+    # print("+"*80)
+    return numbers
 
 
 def get_gear_ratios(line_below, this_line, line_above):
@@ -200,19 +247,27 @@ def get_gear_ratios(line_below, this_line, line_above):
        if there are 2 numbers adjacent to the *, then multiply them together"""
 
     # loop through all characters in this line and look for a '*'.
-    # (sub function) if one is found, check if there are 2 numbers next to it
-    # (sub function) use regex to parse out what those full numbers are
     gear_ratios = []
-    print("="*80)
-    print("abv: ", line_above)
-    print("ths: ", this_line)
-    print("bel: ", line_below)
-    for i, char in enumerate(this_line):
-        if char == '*' and \
-                has_two_numbers(line_below, this_line, line_above, i):
-            gear_ratios.append(
-                find_gear_ratios(line_above, line_below, this_line, i))
-    return 0
+
+    # pad the lines
+    # all lines are terminated wtih \n, so skip that too
+    line_above = '.' + line_above[:-1] + '.'
+    this_line = '.' + this_line[:-1] + '.'
+    line_below = '.' + line_below[:-1] + '.'
+
+    logger.info("="*80)
+    logger.info("abv: " + line_above)
+    logger.info("ths: " + this_line)
+    logger.info("bel: " + line_below)
+    for i in range(1, len(this_line) - 1):
+        char = this_line[i]
+        if char == '*':
+            numbers = get_numbers(line_below, this_line, line_above, i)
+            logger.info("numbers = " + str(numbers))
+            if len(numbers) == 2:
+                gear_ratios.append(numbers[0] * numbers[1])
+
+    return sum(gear_ratios)
 
 
 def problem_2(lines):
