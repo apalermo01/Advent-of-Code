@@ -101,7 +101,6 @@ def find_number_in_line(line, position, index=None):
     """
     # logger.info("running find number in line")
     if position == 'start':
-        # print("searching from start")
         number_str = ''
         i = 0
         while line[i].isdigit() and i < len(line):
@@ -109,19 +108,13 @@ def find_number_in_line(line, position, index=None):
             i += 1
 
     elif position == 'end':
-        # print("searching from end")
         number_str = ['']*5
         i = -1
         while line[i].isdigit() and abs(i) < len(line) and i >= -5:
-            # print("line @ i = ", line[i])
             number_str[i] = line[i]
             i -= 1
 
     else:
-        # print("searching from middle")
-        # print("line = ", line)
-        # print("index = ", index)
-
         number_str = ['']*10
         i = 5
         offset_from_center = 0
@@ -137,7 +130,6 @@ def find_number_in_line(line, position, index=None):
         while i-offset_from_center > 0 and \
                 index-offset_from_center >= 0 and \
                 line[index-offset_from_center].isdigit():
-            # print("line @ index - offset", line[index-offset_from_center])
             number_str[i-offset_from_center] = line[index-offset_from_center]
             offset_from_center += 1
 
@@ -149,15 +141,11 @@ def find_number_in_line(line, position, index=None):
         while i+offset_from_center < 10 and \
                 index + offset_from_center <= len(line) and \
                 line[index+offset_from_center].isdigit():
-            # print("line @ index + offset", line[index+offset_from_center])
             number_str[i+offset_from_center] = line[index+offset_from_center]
             offset_from_center += 1
 
-    # print("number str = ", number_str)
     number_str = ''.join(number_str).strip()
     number = int(number_str)
-    # print("number = ", number)
-    # print("-"*80)
     return number
 
 
@@ -187,15 +175,10 @@ def get_numbers(line_below, this_line, line_above, index):
         line[0].isdigit(), line[1].isdigit(), line[2].isdigit()]
 
     numbers = []
-    # print("+"*80)
-    # print("running get numbers")
 
     # same logic for above and below
     for line in [line_below, line_above]:
-        # print("line = ", line)
         seg = line[index-1:index+2]
-        # print("segment = ", seg)
-        # print("which digits = ", which_digits(seg))
 
         match which_digits(seg):
 
@@ -230,15 +213,12 @@ def get_numbers(line_below, this_line, line_above, index):
 
     # position 4
     if this_line[index-1].isdigit():
-        # print("position 4")
         numbers.append(find_number_in_line(this_line[:index], 'end', None))
 
     # position 5
     if this_line[index+1].isdigit():
-        # print("position 5")
         numbers.append(find_number_in_line(this_line[index+1:], 'start', None))
-    # print("numbers = ", numbers)
-    # print("+"*80)
+
     return numbers
 
 
