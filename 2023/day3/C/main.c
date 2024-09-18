@@ -17,7 +17,7 @@ struct line_info {
  */
 struct line_info count_lines(FILE *file) {
   char buf[BUF_SIZE];
-  int counter = 0;
+  int row_counter = 0;
   int max_width = 0;
   int width_counter = 0;
 
@@ -34,7 +34,7 @@ struct line_info count_lines(FILE *file) {
     int i;
     for (i = 0; i < res; i++) {
       if (buf[i] == '\n') {
-        counter++;
+        row_counter++;
         if (width_counter > max_width) {
           max_width = width_counter;
         }
@@ -49,7 +49,9 @@ struct line_info count_lines(FILE *file) {
     }
   }
 
-  ret.num_lines = counter;
+  printf("coutner = %d\n", row_counter);
+  printf("max width = %d\n", max_width);
+  ret.num_lines = row_counter;
   ret.max_width = max_width;
   return ret;
 }
@@ -78,13 +80,15 @@ struct array2d make_array(int nrows, int ncols) {
 }
 
 int set_in_array(struct array2d arr, int row, int col, char value) {
-  
+
   // bounds-checking
-  if (row > arr.numrows) {
+  if (row >= arr.numrows) {
+    printf("OUT OF BOUNDS\n");
     return 1;
   }
 
-  if (col > arr.numcols) {
+  if (col >= arr.numcols) {
+    printf("OUT OF BOUNDS\n");
     return 1;
   }
 
@@ -95,9 +99,87 @@ int set_in_array(struct array2d arr, int row, int col, char value) {
   return 0;
 }
 
-void freearr(struct array2d * arr) {
-  free(arr -> arr);
+int get_value(struct array2d arr, int row, int col) {
+  return arr.arr[arr.numcols * col + row];
+}
+
+void freearr(struct array2d *arr) {
+  free(arr->arr);
   free(arr);
+}
+
+/*
+ * Take a file and convert it to a 2d array
+ */
+struct array2d file_to_array(FILE *file, struct line_info linfo) {
+  int nrows = linfo.num_lines;
+  int ncols = linfo.max_width;
+  char *line = NULL;
+  size_t len = 0;
+  ssize_t read;
+
+  int thisrow = 0;
+  int thiscol = 0;
+  struct array2d arr = make_array(nrows, ncols);
+
+  while ((read = getline(&line, &len, file)) != -1) {
+    /*printf("line = %s\n", line);*/
+    for (thiscol = 0; thiscol < ncols; thiscol++) {
+      /*printf("setting (%d, %d) to %c\n", thisrow, thiscol, line[thiscol]);*/
+      set_in_array(arr, thisrow, thiscol, line[thiscol]);
+    }
+    thisrow++;
+  }
+
+  return arr;
+}
+
+void print_row(struct array2d array, int row) {
+  if (row >= array.numrows) {
+    fprintf(stderr, "ERROR: row %d is out of bounds for array with %d rows\n", row, array.numrows);
+  }
+  for (int j = 0; j < array.numcols; j++) {
+    printf("%c", get_value(array, row, j));
+  }
+}
+
+struct array2d pad_array(struct array2d arr) {
+  int nrows = arr.numrows + 2;
+  int ncols = arr.numcols + 2;
+
+  struct array2d new_array = make_array(nrows, ncols);
+
+  // original text
+  for (int i = 1; i < nrows - 1; i++) {
+    for (int j = 1; j < ncols - 1; j++) {
+      set_in_array(new_array, i, j, get_value(arr, i - 1, j - 1));
+    }
+  }
+
+  // upper row and lower rows
+  for (int j = 0; j < ncols; j++) {
+    if (set_in_array(new_array, 0, j, '.') != 0) {
+      fprintf(stderr, "error assigning value: row=%d, col=%d\n", 0, j);
+    }
+
+    if (set_in_array(new_array, nrows - 1, j, '.') != 0) {
+      fprintf(stderr, "error assigning value: row=%d, col=%d\n", nrows, j);
+    }
+  }
+
+  // left and right columns
+  for (int i = 0; i < nrows-1; i++) {
+
+    if (set_in_array(new_array, i, 0, '.') != 0) {
+      fprintf(stderr, "error assigning value: row=%d, col=%d\n", i, 0);
+    }
+    if (set_in_array(new_array, i, ncols-1, '.') != 0) {
+      fprintf(stderr, "error assigning value: row=%d, col=%d\n", i, ncols);
+    }
+
+  }
+
+  return new_array;
 }
 
 /*
@@ -128,14 +210,26 @@ int middle_search(char *buf, int starting_pos) { return 0; }
  * A symbol is anything that is not a digit or '.'). We want to
  * add up all the part numbers in the array
  */
-int problem_1(char *array) {
+
+int problem_1(struct array2d text) {
+
+  for (int i = 0; i < text.numrows; i++) {
+    for (int j = 0; j < text.numcols; j++) {
+    }
+  }
 
   // pad the array so we can treat everything equally
+  text = pad_array(text);
 
+  for (int i = 0; i < text.numrows; i++) {
+    print_row(text, i);
+    printf("\n");
+  }
   return 0;
 }
 
 // test the 2d array functionality
+/*
 int main() {
   int numrows = 2;
   int numcols = 3;
@@ -148,7 +242,8 @@ int main() {
     }
   }
 }
-/* 
+*/
+
 int main() {
   FILE *fptr;
 
@@ -162,11 +257,11 @@ int main() {
   struct line_info linfo = count_lines(fptr);
 
   // rewind the file back to the beginning
+  rewind(fptr);
 
   // make a 2d array of all the characters
-  char *array; // finish this out
+  struct array2d array = file_to_array(fptr, linfo);
 
   // now solve it out
   int result = problem_1(array);
 }
-*/
