@@ -81,8 +81,6 @@ struct line_info count_lines(FILE *file) {
     }
   }
 
-  printf("coutner = %d\n", row_counter);
-  printf("max width = %d\n", max_width);
   ret.num_lines = row_counter;
   ret.max_width = max_width;
   return ret;
@@ -214,7 +212,7 @@ struct array2d pad_array(struct array2d arr) {
 int backward_search(char *buf, int starting_pos, int max_digits,
                     size_t buffsize) {
 
-  printf("running backward search\n");
+  /*printf("running backward search\n");*/
   char *found_digits_tmp = malloc(max_digits * sizeof(char));
   int num_digits_found = 0;
 
@@ -248,7 +246,6 @@ int backward_search(char *buf, int starting_pos, int max_digits,
   free(found_digits_tmp);
   free(found_digits);
 
-  printf("ret is %d\n", ret);
   return ret;
 }
 
@@ -259,7 +256,6 @@ int backward_search(char *buf, int starting_pos, int max_digits,
  */
 int forward_search(char *buf, int starting_pos, int max_digits,
                    size_t buffsize) {
-  printf("running forward search\n");
   char *found_digits_tmp = malloc(max_digits * sizeof(char));
   int num_digits_found = 0;
 
@@ -294,7 +290,6 @@ int forward_search(char *buf, int starting_pos, int max_digits,
   free(found_digits);
   free(found_digits_tmp);
 
-  printf("ret is %d\n", ret);
   return ret;
 }
 
@@ -306,7 +301,6 @@ int forward_search(char *buf, int starting_pos, int max_digits,
  */
 int middle_search(char *buf, int starting_pos, int max_digits,
                   size_t buffsize) {
-  printf("running middle search\n");
   char *found_digits_tmp = malloc((max_digits * 2 + 1) * sizeof(char));
   int num_digits_found = 0;
 
@@ -315,38 +309,44 @@ int middle_search(char *buf, int starting_pos, int max_digits,
     return 0;
   }
 
-  // forward 
+  // forward
   int offset;
-  for (offset = 0; offset < max_digits; offset ++) {
-    if (isdigit(buf[starting_pos+offset]) == 0 || starting_pos + offset - 1 > buffsize) {
+  for (offset = 0; offset < max_digits; offset++) {
+    if (isdigit(buf[starting_pos + offset]) == 0 ||
+        starting_pos + offset - 1 > buffsize) {
       break;
     }
 
-    found_digits_tmp[max_digits+offset] = buf[starting_pos + offset];
-    num_digits_found ++;
+    found_digits_tmp[max_digits + offset] = buf[starting_pos + offset];
+    num_digits_found++;
   }
 
   // backward
-  for (offset = -1; offset > max_digits * -1; offset --) {
+  for (offset = -1; offset > max_digits * -1; offset--) {
     if (isdigit(buf[starting_pos + offset]) == 0 || starting_pos + offset < 0) {
       break;
     }
 
-    found_digits_tmp[max_digits+offset] = buf[starting_pos + offset];
-    num_digits_found ++;
+    found_digits_tmp[max_digits + offset] = buf[starting_pos + offset];
+    num_digits_found++;
   }
 
-  char *found_digits = malloc((num_digits_found+1) * sizeof(char));
+  char *found_digits = malloc((num_digits_found + 1) * sizeof(char));
   if (found_digits == NULL) {
     free(found_digits_tmp);
-    fprintf(stderr, "Error allocating memory for middle search");
     return 0;
   }
-  
-  /*for (int i = 0; i < num_digits_found; i++) {*/
-  /*  found_digits[i] = found_digits_tmp[]*/
-  /*}*/
-  return 0;
+
+  for (int i = 0; i < num_digits_found; i++) {
+    found_digits[i] = found_digits_tmp[offset + max_digits + i + 1];
+  }
+  found_digits[num_digits_found] = '\0';
+  int ret = string_to_num(found_digits);
+
+  free(found_digits);
+  free(found_digits_tmp);
+
+  return ret;
 }
 /*
  * core logic for problem 1
@@ -426,12 +426,6 @@ int get_part_numbers(struct array2d text, int row, int col) {
     return 0;
   }
 
-  printf("=============\n");
-  printf("top line is:    %s\n", top_line);
-  printf("middle line is: %s\n", middle_line);
-  printf("bottom line is: %s\n", bottom_line);
-  printf("coords of * are: (%d, %d)\n", row, col);
-
   /*
    * case 1:
    *
@@ -440,11 +434,9 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?     # . .
    */
   if (top_cases[0] > 0 && top_cases[1] == 0 && top_cases[2] == 0) {
-    printf("evaluating case 1 for top\n");
     part_total += backward_search(top_line, col - 1, MAX_DIGITS, text.numcols);
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] == 0 && bottom_cases[2] == 0) {
-    printf("evaluating case 1 for bottom\n");
     part_total +=
         backward_search(bottom_line, col - 1, MAX_DIGITS, text.numcols);
   }
@@ -457,11 +449,9 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    . # .
    */
   if (top_cases[0] == 0 && top_cases[1] > 0 && top_cases[2] == 0) {
-    printf("evaluating case 2 for top\n");
     part_total += top_line[col] - '0';
   }
   if (bottom_cases[0] == 0 && bottom_cases[1] > 0 && bottom_cases[2] == 0) {
-    printf("evaluating case 2 for bottom\n");
     part_total += bottom_line[col] - '0';
   }
 
@@ -473,12 +463,11 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    . . #
    */
   if (top_cases[0] == 0 && top_cases[1] == 0 && top_cases[2] > 0) {
-    printf("evaluating case 3 for top\n");
     part_total += forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
   }
   if (bottom_cases[0] == 0 && bottom_cases[1] == 0 && bottom_cases[2] > 0) {
-    printf("evaluating case 3 for bottom\n");
-    part_total += forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
+    part_total +=
+        forward_search(bottom_line, col + 1, MAX_DIGITS, text.numcols);
   }
 
   /*
@@ -489,11 +478,9 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    # # .
    */
   if (top_cases[0] > 0 && top_cases[1] > 0 && top_cases[2] == 0) {
-    printf("evaluating case 4 for top\n");
     part_total += backward_search(top_line, col, MAX_DIGITS, text.numcols);
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] > 0 && bottom_cases[2] == 0) {
-    printf("evaluating case 4 for bottom\n");
     part_total += backward_search(bottom_line, col, MAX_DIGITS, text.numcols);
   }
 
@@ -505,11 +492,9 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    . # #
    */
   if (top_cases[0] == 0 && top_cases[1] > 0 && top_cases[2] > 0) {
-    printf("evaluating case 5 for top\n");
     part_total += forward_search(top_line, col, MAX_DIGITS, text.numcols);
   }
   if (bottom_cases[0] == 0 && bottom_cases[1] > 0 && bottom_cases[2] > 0) {
-    printf("evaluating case 5 for bottom\n");
     part_total += forward_search(bottom_line, col, MAX_DIGITS, text.numcols);
   }
 
@@ -521,12 +506,10 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    # . #
    */
   if (top_cases[0] > 0 && top_cases[1] == 0 && top_cases[2] > 0) {
-    printf("evaluating case 6 top\n");
     part_total += backward_search(top_line, col - 1, MAX_DIGITS, text.numcols);
     part_total += forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] == 0 && bottom_cases[2] > 0) {
-    printf("evaluating case 6 bottom\n");
     part_total +=
         backward_search(bottom_line, col - 1, MAX_DIGITS, text.numcols);
     part_total +=
@@ -541,11 +524,9 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    # # #
    */
   if (top_cases[0] > 0 && top_cases[1] > 0 && top_cases[2] > 0) {
-    printf("evaluating case 7 for top\n");
     part_total += middle_search(top_line, col, MAX_DIGITS, text.numcols);
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] > 0 && bottom_cases[2] > 0) {
-    printf("evaluating case 7 for bottom\n");
     part_total += middle_search(bottom_line, col, MAX_DIGITS, text.numcols);
   }
 
@@ -556,12 +537,10 @@ int get_part_numbers(struct array2d text, int row, int col) {
    */
 
   if (middle_cases[0] > 0) {
-    printf("evaluating case 8.backwards for middle\n");
     part_total +=
         backward_search(middle_line, col - 1, MAX_DIGITS, text.numcols);
   }
   if (middle_cases[1] > 0) {
-    printf("evaluating case 8.forwards for middle\n");
     part_total +=
         forward_search(middle_line, col + 1, MAX_DIGITS, text.numcols);
   }
@@ -577,11 +556,12 @@ int problem_1(struct array2d text) {
 
   // pad the array so we can treat everything equally
   text = pad_array(text);
-
+  char value;
   // loop through the "core" of the file
   for (int i = 1; i < text.numrows - 1; i++) {
     for (int j = 1; j < text.numcols - 1; j++) {
-      if (get_value(text, i, j) == '*') {
+      value = get_value(text, i, j);
+      if (value != '.' && isdigit(value) == 0) {
         part_total += get_part_numbers(text, i, j);
       }
     }
@@ -589,26 +569,11 @@ int problem_1(struct array2d text) {
   return part_total;
 }
 
-// test the 2d array functionality
-/*
-int main() {
-  int numrows = 2;
-  int numcols = 3;
-
-  struct array2d my_array = make_array(numrows, numcols);
-
-  for (int i = 0; i < numrows; i++) {
-    for (int j = 0; j < numcols; j++) {
-      set_in_array(my_array, i, j, (char) (i*j));
-    }
-  }
-}
-*/
-
 int main() {
   FILE *fptr;
 
-  if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {
+  /*if ((fptr = fopen("../sample_input_2.txt", "r")) == NULL) {*/
+  if ((fptr = fopen("../input_1.txt", "r")) == NULL) {
     fprintf(stderr, "Error opening file");
     free(fptr);
     exit(1);
@@ -625,4 +590,5 @@ int main() {
 
   // now solve it out
   int result = problem_1(array);
+  printf("result for problem 1: %d", result);
 }
