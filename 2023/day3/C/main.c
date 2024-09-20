@@ -356,7 +356,7 @@ int middle_search(char *buf, int starting_pos, int max_digits,
  * add up all the part numbers in the array
  */
 
-int get_part_numbers(struct array2d text, int row, int col) {
+int get_part_numbers(struct array2d text, int row, int col, int mode) {
   /*
    * We're searching around the text array like this:
    *
@@ -398,7 +398,18 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?
    * # * #
    */
-  int part_total = 0;
+   if (mode != 1 && mode != 2) {
+    printf("invalid mode, options are 1 or 2");
+    return 0;
+  }
+
+  int numbers[255];
+
+  for (int i = 0; i < 255; i++) {
+    numbers[i] = 0;
+  }
+
+  int num_count = 0;
 
   // create an array of bools that describe which case(s) we're dealing with
   int top_cases[] = {isdigit(get_value(text, row - 1, col - 1)),
@@ -434,11 +445,14 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?     # . .
    */
   if (top_cases[0] > 0 && top_cases[1] == 0 && top_cases[2] == 0) {
-    part_total += backward_search(top_line, col - 1, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        backward_search(top_line, col - 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] == 0 && bottom_cases[2] == 0) {
-    part_total +=
+    numbers[num_count] =
         backward_search(bottom_line, col - 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   /*
@@ -449,10 +463,12 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    . # .
    */
   if (top_cases[0] == 0 && top_cases[1] > 0 && top_cases[2] == 0) {
-    part_total += top_line[col] - '0';
+    numbers[num_count] = top_line[col] - '0';
+    num_count++;
   }
   if (bottom_cases[0] == 0 && bottom_cases[1] > 0 && bottom_cases[2] == 0) {
-    part_total += bottom_line[col] - '0';
+    numbers[num_count] = bottom_line[col] - '0';
+    num_count++;
   }
 
   /*
@@ -463,11 +479,14 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    . . #
    */
   if (top_cases[0] == 0 && top_cases[1] == 0 && top_cases[2] > 0) {
-    part_total += forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (bottom_cases[0] == 0 && bottom_cases[1] == 0 && bottom_cases[2] > 0) {
-    part_total +=
+    numbers[num_count] =
         forward_search(bottom_line, col + 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   /*
@@ -478,10 +497,14 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    # # .
    */
   if (top_cases[0] > 0 && top_cases[1] > 0 && top_cases[2] == 0) {
-    part_total += backward_search(top_line, col, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        backward_search(top_line, col, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] > 0 && bottom_cases[2] == 0) {
-    part_total += backward_search(bottom_line, col, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        backward_search(bottom_line, col, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   /*
@@ -492,10 +515,14 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    . # #
    */
   if (top_cases[0] == 0 && top_cases[1] > 0 && top_cases[2] > 0) {
-    part_total += forward_search(top_line, col, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        forward_search(top_line, col, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (bottom_cases[0] == 0 && bottom_cases[1] > 0 && bottom_cases[2] > 0) {
-    part_total += forward_search(bottom_line, col, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        forward_search(bottom_line, col, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   /*
@@ -506,14 +533,20 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    # . #
    */
   if (top_cases[0] > 0 && top_cases[1] == 0 && top_cases[2] > 0) {
-    part_total += backward_search(top_line, col - 1, MAX_DIGITS, text.numcols);
-    part_total += forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        backward_search(top_line, col - 1, MAX_DIGITS, text.numcols);
+    num_count++;
+    numbers[num_count] =
+        forward_search(top_line, col + 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] == 0 && bottom_cases[2] > 0) {
-    part_total +=
+    numbers[num_count] =
         backward_search(bottom_line, col - 1, MAX_DIGITS, text.numcols);
-    part_total +=
+    num_count++;
+    numbers[num_count] =
         forward_search(bottom_line, col + 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   /*
@@ -524,10 +557,13 @@ int get_part_numbers(struct array2d text, int row, int col) {
    * ? ? ?    # # #
    */
   if (top_cases[0] > 0 && top_cases[1] > 0 && top_cases[2] > 0) {
-    part_total += middle_search(top_line, col, MAX_DIGITS, text.numcols);
+    numbers[num_count] = middle_search(top_line, col, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (bottom_cases[0] > 0 && bottom_cases[1] > 0 && bottom_cases[2] > 0) {
-    part_total += middle_search(bottom_line, col, MAX_DIGITS, text.numcols);
+    numbers[num_count] =
+        middle_search(bottom_line, col, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   /*
@@ -537,32 +573,57 @@ int get_part_numbers(struct array2d text, int row, int col) {
    */
 
   if (middle_cases[0] > 0) {
-    part_total +=
+    numbers[num_count] =
         backward_search(middle_line, col - 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
   if (middle_cases[1] > 0) {
-    part_total +=
+    numbers[num_count] =
         forward_search(middle_line, col + 1, MAX_DIGITS, text.numcols);
+    num_count++;
   }
 
   free(top_line);
   free(middle_line);
   free(bottom_line);
-  return part_total;
+
+  if (mode == 1) {
+    int total = 0;
+    for (int i = 0; i < num_count; i++) {
+      total += numbers[i];
+    }
+    return total;
+  } else {
+    if (num_count == 2) {
+      return numbers[0] * numbers[1];
+    } else {
+      return 0;
+    }
+  }
 }
 
-int problem_1(struct array2d text) {
+int solve(struct array2d text, int mode) {
   int part_total = 0;
+  
+  if (mode == 1) {
+    printf("finding part numbers\n");
+  } else if (mode == 2) {
+    printf("finding gear ratios\n");
+  } else {
+    printf("invalid mode\n");
+    return 0;
+  }
 
   // pad the array so we can treat everything equally
   text = pad_array(text);
   char value;
+
   // loop through the "core" of the file
   for (int i = 1; i < text.numrows - 1; i++) {
     for (int j = 1; j < text.numcols - 1; j++) {
       value = get_value(text, i, j);
       if (value != '.' && isdigit(value) == 0) {
-        part_total += get_part_numbers(text, i, j);
+        part_total += get_part_numbers(text, i, j, mode);
       }
     }
   }
@@ -589,6 +650,6 @@ int main() {
   struct array2d array = file_to_array(fptr, linfo);
 
   // now solve it out
-  int result = problem_1(array);
+  int result = solve(array, 1);
   printf("result for problem 1: %d", result);
 }
