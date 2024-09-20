@@ -652,4 +652,8 @@ int main() {
   // now solve it out
   int result = solve(array, 1);
   printf("result for problem 1: %d", result);
+
+  result = solve(array, 2);
+  printf("result for problem 2: %d", result);
+
 }
