@@ -30,8 +30,9 @@ int process_line(char *line) {
     // unlikely here, but good to have just in case.
     size_t size = strnlen(line, 2048);
   
+    printf("============\n"); 
+    printf("line = %s\n", line);
     for (int i = 0; i < size; i++) {
-
         if (isdigit(line[i]) && !found_first_int) {
             found_first_int = 1;
             // line[i] is a character, represented by an integer.
@@ -45,6 +46,7 @@ int process_line(char *line) {
     }
 
     unsigned result = concatenate(first_num, second_num);
+    printf("result = %d\n", result);
     return result;
 }
 
@@ -235,6 +237,7 @@ int main() {
     int total = 0;
     FILE *fptr;
 
+    /*if ((fptr = fopen("../input_1.txt", "r")) == NULL) {*/
     if ((fptr = fopen("../input_1.txt", "r")) == NULL) {
         printf("Error opening file");
 
@@ -254,7 +257,7 @@ int main() {
     
     /* Second part */
     total = 0;
-    if ((fptr = fopen("../input_1.txt", "r")) == NULL) {
+    if ((fptr = fopen("../sample_input_1.txt", "r")) == NULL) {
         printf("Error opening file");
 
         free(fptr);
