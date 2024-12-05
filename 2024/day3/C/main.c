@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <regex.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
