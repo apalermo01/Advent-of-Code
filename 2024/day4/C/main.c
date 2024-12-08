@@ -100,17 +100,40 @@ int set_in_array(struct array2d arr, int row, int col, char value) {
   }
 
   // set the value
-  arr.arr[(arr.numrows * row) + col] = value;
+  arr.arr[(arr.numcols * row) + col] = value;
 
   // return 0 for success
   return 0;
 }
 
-int get_value(struct array2d arr, int row, int col) {
-  return arr.arr[(arr.numrows * row) + col];
+int get_value(struct array2d arr, int row, int col, int p) {
+  /*if (p == 1) {*/
+  /*  printf("getting index %d\n", (arr.numcols * row) + col);*/
+  /*}*/
+  return arr.arr[(arr.numcols * row) + col];
 }
 
 void freearr(struct array2d *arr) { free(arr->arr); }
+
+void print_row(struct array2d array, int row) {
+  if (row >= array.numrows) {
+    fprintf(stderr, "ERROR: row %d is out of bounds for array with %d rows\n",
+            row, array.numrows);
+    return;
+  }
+  for (int j = 0; j < array.numcols; j++) {
+    printf("%c", get_value(array, row, j, 1));
+  }
+}
+
+void get_row(struct array2d array, int row, char *buf, size_t buffsize) {
+  if (buffsize < array.numcols) {
+    fprintf(stderr, "get_row: passed buffer is too small for array's row size");
+  }
+  for (int j = 0; j < array.numcols; j++) {
+    buf[j] = get_value(array, row, j, 0);
+  }
+}
 
 struct array2d file_to_array(FILE *file, struct line_info linfo) {
   int nrows = linfo.num_lines;
@@ -124,244 +147,142 @@ struct array2d file_to_array(FILE *file, struct line_info linfo) {
   struct array2d arr = make_array(nrows, ncols);
 
   while ((read = getline(&line, &len, file)) != -1) {
+    /*printf("row          = %s", line);*/
     for (thiscol = 0; thiscol < ncols; thiscol++) {
       set_in_array(arr, thisrow, thiscol, line[thiscol]);
     }
+    /*printf("row in array = ");*/
+    /*print_row(arr, thisrow);*/
+    /*printf("\n");*/
     thisrow++;
   }
+
+  /*printf("\n");*/
+  /*printf("\n");*/
+  /*printf("\n");*/
+  /*for (int i = 0; i < thisrow; i++) {*/
+  /*  printf("row in array after write = ");*/
+  /*  print_row(arr, i);*/
+  /*  printf("\n");*/
+  /*}*/
 
   return arr;
 }
 
-void print_row(struct array2d array, int row) {
-  if (row >= array.numrows) {
-    fprintf(stderr, "ERROR: row %d is out of bounds for array with %d rows\n",
-            row, array.numrows);
-  }
-  for (int j = 0; j < array.numcols; j++) {
-    printf("%c", get_value(array, row, j));
-  }
-}
-
-void get_row(struct array2d array, int row, char *buf, size_t buffsize) {
-  if (buffsize < array.numcols) {
-    fprintf(stderr, "get_row: passed buffer is too small for array's row size");
-  }
-  for (int j = 0; j < array.numcols; j++) {
-    buf[j] = get_value(array, row, j);
-  }
-}
-
-void get_substring(char* dest, const struct array2d arr, int row, int col, int num_chars) {
+void get_substring(char *dest, const struct array2d arr, int row, int col,
+                   int num_chars) {
   for (int i = 0; i < num_chars; i++) {
-    dest[i] = get_value(arr, row, col+i);
-  } 
+    dest[i] = get_value(arr, row, col + i, 0);
+  }
 }
 
-void get_substring_vert(char* dest, const struct array2d arr, int row, int col, int num_chars) {
+void get_substring_vert(char *dest, const struct array2d arr, int row, int col,
+                        int num_chars) {
   for (int i = 0; i < num_chars; i++) {
-    dest[i] = get_value(arr, row+i, col);
-  } 
+    dest[i] = get_value(arr, row + i, col, 0);
+  }
 }
 
 int check_horizontal(struct array2d array) {
   int result = 0;
-  char xmas[4] = "XMAS";
-  char samx[4] = "SAMX";
-  char* compare_buff = malloc(5 * sizeof(char));
   for (int i = 0; i < array.numrows; i++) {
-    for (int j= 0; j < array.numcols; j++) {
-      get_substring(compare_buff, array, i, j, 4); 
-      compare_buff[4] = '\0';
-      if((strncmp(xmas, compare_buff, 4) == 0) || (strncmp(samx, compare_buff, 4) == 0)) {
-        /*printf("horizontal match @ %d, %d\n", i, j);*/
-        result ++;
+    /*printf("row = %d\n", i);*/
+    /*print_row(array, i);*/
+    /*printf("\n");*/
+
+    for (int j = 0; j < array.numcols - 3; j++) {
+      if (get_value(array, i, j    , 0) == 'X' &&
+          get_value(array, i, j + 1, 0) == 'M' &&
+          get_value(array, i, j + 2, 0) == 'A' &&
+          get_value(array, i, j + 3, 0) == 'S') {
+        result++;
+      }
+      if (get_value(array, i, j    , 0) == 'S' &&
+          get_value(array, i, j + 1, 0) == 'A' &&
+          get_value(array, i, j + 2, 0) == 'M' &&
+          get_value(array, i, j + 3, 0) == 'X') {
+        result++;
       }
     }
   }
-  
-  free(compare_buff);
+
   return result;
 }
-
 
 int check_vertical(struct array2d array) {
   int result = 0;
-  char xmas[4] = "XMAS";
-  char samx[4] = "SAMX";
-  char* compare_buff = malloc(5 * sizeof(char));
-  for (int i = 0; i < array.numrows; i++) {
-    for (int j= 0; j < array.numcols; j++) {
-      get_substring_vert(compare_buff, array, i, j, 4); 
-      compare_buff[4] = '\0';
-      if((strncmp(xmas, compare_buff, 4) == 0) || (strncmp(samx, compare_buff, 4) == 0)) {
-        /*printf("vertical match @ %d, %d\n", i, j);*/
-        result ++;
+  for (int i = 0; i < array.numrows - 3; i++) {
+    for (int j = 0; j < array.numcols; j++) {
+      if (get_value(array, i, j    , 0) == 'X' &&
+          get_value(array, i + 1, j, 0) == 'M' &&
+          get_value(array, i + 2, j, 0) == 'A' &&
+          get_value(array, i + 3, j, 0) == 'S') {
+        result++;
+      }
+      if (get_value(array, i, j    , 0) == 'S' &&
+          get_value(array, i + 1, j, 0) == 'A' &&
+          get_value(array, i + 2, j, 0) == 'M' &&
+          get_value(array, i + 3, j, 0) == 'X') {
+        result++;
       }
     }
   }
-  
-  free(compare_buff);
-  return result;
-}
 
-
-void re_init_compare_buff(char* compare_buff) {
-  for (int i = 0; i < 4; i++) {
-    compare_buff[i] = '-';
-  }
-  compare_buff[4] = '\0';
-}
-
-int check_diag_old(struct array2d array) {
-  int result = 0;
-  char xmas[4] = "XMAS";
-  char samx[4] = "SAMX";
-  char* compare_buff = malloc(5 * sizeof(char));
-  compare_buff[4] = '\0';
-
-  for (int i = 0; i < array.numrows; i++) {
-    for (int j= 0; j < array.numcols; j++) {
-      
-      // down and right
-      /*if (i < array.numrows - 3 && j < array.numcols - 3) {*/
-        for (int x = 0; x < 4; x++) {
-          compare_buff[x] = get_value(array, i+x, j-x);
-        }
-        /*if((strncmp(xmas, compare_buff, 4) == 0) || (strncmp(samx, compare_buff, 4) == 0)) {*/
-        if(strncmp(xmas, compare_buff, 4) == 0) {
-          print_row(array, i);
-          printf("\n");
-          print_row(array, i+1);
-          printf("\n");
-          print_row(array, i+2);
-          printf("\n");
-          print_row(array, i+3);
-          printf("\n");
-          printf("check_diag (down, right): match at %d,%d - %s\n", i, j, compare_buff);
-          result ++;
-        }
-        re_init_compare_buff(compare_buff);
-      /*}*/
-
-      // down and left
-      /*if (i < array.numrows - 4 && j > 2) {*/
-        for (int x = 0; x < 4; x++) {
-          compare_buff[x] = get_value(array, i+x, j-x);
-        }
-        /*if((strncmp(xmas, compare_buff, 4) == 0) || (strncmp(samx, compare_buff, 4) == 0)) {*/
-        if(strncmp(xmas, compare_buff, 4) == 0) {
-          print_row(array, i);
-          printf("\n");
-          print_row(array, i+1);
-          printf("\n");
-          print_row(array, i+2);
-          printf("\n");
-          print_row(array, i+3);
-          printf("\n");
-          printf("check_diag (down, left): match at %d,%d - %s\n", i, j, compare_buff);
-          result ++;
-        }
-        re_init_compare_buff(compare_buff);
-      /*}*/
-
-      // up and right
-      /*if (i > 2 && j < array.numcols - 2) {*/
-        for (int x = 0; x < 4; x++) {
-          compare_buff[x] = get_value(array, i-x, j+x);
-        }
-        /*if((strncmp(xmas, compare_buff, 4) == 0) || (strncmp(samx, compare_buff, 4) == 0)) {*/
-        if(strncmp(xmas, compare_buff, 4) == 0) {
-          print_row(array, i-3);
-          printf("\n");
-          print_row(array, i-2);
-          printf("\n");
-          print_row(array, i-1);
-          printf("\n");
-          print_row(array, i);
-          printf("\n");
-          printf("check_diag (up, right): match at %d,%d - %s\n", i, j, compare_buff);
-          result ++;
-        }
-        re_init_compare_buff(compare_buff);
-      /*}*/
-
-      // up and left
-      /*if (i > 2 && j > 2) {*/
-        for (int x = 0; x < 4; x++) {
-          compare_buff[x] = get_value(array, i-x, j+x);
-        }
-        /*if((strncmp(xmas, compare_buff, 4) == 0) || (strncmp(samx, compare_buff, 4) == 0)) {*/
-        if(strncmp(xmas, compare_buff, 4) == 0) {
-          print_row(array, i-3);
-          printf("\n");
-          print_row(array, i-2);
-          printf("\n");
-          print_row(array, i-1);
-          printf("\n");
-          print_row(array, i);
-          printf("\n");
-          printf("check_diag (up, left): match at %d,%d - %s\n", i, j, compare_buff);
-          result ++;
-        }
-        re_init_compare_buff(compare_buff);
-      /*}*/
-    }
-  }
-  
-  free(compare_buff);
   return result;
 }
 
 int check_diag(struct array2d array) {
   int result = 0;
-  char xmas[4] = "XMAS";
-  char samx[4] = "SAMX";
-  char* compare_buff = malloc(5 * sizeof(char));
-  compare_buff[4] = '\0';
-
   for (int i = 0; i < array.numrows; i++) {
-    for (int j= 0; j < array.numcols; j++) {
+    /*printf("row in checking diag = ");*/
+    /*print_row(array, i);*/
+    /*printf("\n");*/
+    for (int j = 0; j < array.numcols; j++) {
       // down and right
-      if (i < array.numrows - 4 &&
-          j < array.numcols - 4 &&
-          get_value(array, i, j) == 'X' &&
-          get_value(array, i+1, j+1) == 'M' &&
-          get_value(array, i+2, j+2) == 'A' &&
-          get_value(array, i+3, j+3) == 'S') {
-        result ++;
+      if (i <= array.numrows - 3 && j <= array.numcols - 3 &&
+          get_value(array, i, j        , 0) == 'X' &&
+          get_value(array, i + 1, j + 1, 0) == 'M' &&
+          get_value(array, i + 2, j + 2, 0) == 'A' &&
+          get_value(array, i + 3, j + 3, 0) == 'S') {
+        /*printf("down and right match at %d, %d\n", i, j);*/
+        result++;
       }
 
       // down and left
-      if (i < array.numrows - 4 &&
-          j > 3 &&
-          get_value(array, i, j) == 'X' &&
-          get_value(array, i+1, j-1) == 'M' &&
-          get_value(array, i+2, j-2) == 'A' &&
-          get_value(array, i+3, j-3) == 'S') {
-        result ++;
+      /*if (j == array.numcols-1  ) {*/
+      /*  printf("%c\n", get_value(array, i, j));*/
+      /*}*/
+      if (i <= array.numrows - 3 &&
+          j >= 3 &&
+          get_value(array, i, j        , 0) == 'X' &&
+          get_value(array, i + 1, j - 1, 0) == 'M' &&
+          get_value(array, i + 2, j - 2, 0) == 'A' &&
+          get_value(array, i + 3, j - 3, 0) == 'S') {
+        /*printf("down and left match at %d, %d\n", i, j);*/
+        result++;
       }
 
       // up and right
-      if (i > 3 &&
-          j < array.numcols - 4 &&
-          get_value(array, i, j) == 'X' &&
-          get_value(array, i-1, j+1) == 'M' &&
-          get_value(array, i-2, j+2) == 'A' &&
-          get_value(array, i-3, j+3) == 'S') {
-        result ++;
+      if (i >= 3 &&
+          j <= array.numcols - 3 &&
+          get_value(array, i, j        , 0) == 'X' &&
+          get_value(array, i - 1, j + 1, 0) == 'M' &&
+          get_value(array, i - 2, j + 2, 0) == 'A' &&
+          get_value(array, i - 3, j + 3, 0) == 'S') {
+        /*printf("up and right match at %d, %d\n", i, j);*/
+        result++;
       }
 
       // up and left
-      if (i > 3 &&
-          j > 3 &&
-          get_value(array, i, j) == 'X' &&
-          get_value(array, i-1, j-1) == 'M' &&
-          get_value(array, i-2, j-2) == 'A' &&
-          get_value(array, i-3, j-3) == 'S') {
-        result ++;
+      if (i >= 3 &&
+          j >= 3 && 
+          get_value(array, i, j        , 0) == 'X' &&
+          get_value(array, i - 1, j - 1, 0) == 'M' &&
+          get_value(array, i - 2, j - 2, 0) == 'A' &&
+          get_value(array, i - 3, j - 3, 0) == 'S') {
+        /*printf("up and left match at %d, %d\n", i, j);*/
+        result++;
       }
-
     }
   }
 
@@ -375,7 +296,84 @@ int solve_v1(struct array2d array) {
   return result;
 }
 
+int solve_v2(struct array2d array) {
+  printf("solving using version 2\n");
+  int result = 0;
+  get_value(array, array.numrows, array.numcols, 0);
+  for (int i = 0; i < array.numrows; i++) {
+    for (int j = 0; j < array.numcols; j++) {
 
+      if (get_value(array, i, j, 0) == 'X') {
+
+        // forward
+        if(j+3 <= array.numcols &&
+           get_value(array, i, j+1, 0) == 'M' &&
+           get_value(array, i, j+2, 0) == 'A' &&
+           get_value(array, i, j+3, 0) == 'S') {result ++;}
+
+        // backward
+        if(j >= 3 &&
+           get_value(array, i, j-1, 0) == 'M' &&
+           get_value(array, i, j-2, 0) == 'A' &&
+           get_value(array, i, j-3, 0) == 'S') {result ++;}
+
+        // down
+        if(i+3 <= array.numrows &&
+           get_value(array, i + 1, j, 0) == 'M' &&
+           get_value(array, i + 2, j, 0) == 'A' &&
+           get_value(array, i + 3, j, 0) == 'S') {result ++;}
+
+        // up
+        if(i >= 3 &&
+           get_value(array, i - 1, j, 0) == 'M' &&
+           get_value(array, i - 2, j, 0) == 'A' &&
+           get_value(array, i - 3, j, 0) == 'S') {result ++;}
+
+        // down and right
+        if (i+3 <= array.numrows &&
+            j+3 <= array.numcols &&
+            get_value(array, i + 1, j + 1, 0) == 'M' &&
+            get_value(array, i + 2, j + 2, 0) == 'A' &&
+            get_value(array, i + 3, j + 3, 0) == 'S') {
+          /*printf("down and right match at %d, %d\n", i, j);*/
+          result++;
+        }
+
+        // down and left
+        if (i+3 <= array.numrows &&
+            j >= 3 &&
+            get_value(array, i + 1, j - 1, 0) == 'M' &&
+            get_value(array, i + 2, j - 2, 0) == 'A' &&
+            get_value(array, i + 3, j - 3, 0) == 'S') {
+          /*printf("down and left match at %d, %d\n", i, j);*/
+          result++;
+        }
+
+        // up and right
+        if (i >= 3 &&
+            j+3 <= array.numcols &&
+            get_value(array, i - 1, j + 1, 0) == 'M' &&
+            get_value(array, i - 2, j + 2, 0) == 'A' &&
+            get_value(array, i - 3, j + 3, 0) == 'S') {
+          /*printf("up and right match at %d, %d\n", i, j);*/
+          result++;
+        }
+
+        // up and left
+        if (i >= 3 &&
+            j >= 3 && 
+            get_value(array, i - 1, j - 1, 0) == 'M' &&
+            get_value(array, i - 2, j - 2, 0) == 'A' &&
+            get_value(array, i - 3, j - 3, 0) == 'S') {
+          /*printf("up and left match at %d, %d\n", i, j);*/
+          result++;
+        }
+      }
+    }
+  }
+
+  return result;
+}
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {
@@ -416,7 +414,7 @@ int main(int argc, char *argv[]) {
   ssize_t read;
   size_t len = 0;
   char *line = NULL;
-  
+
   // figure out how many lines there are
   struct line_info linfo = count_lines(fptr);
 
@@ -429,6 +427,14 @@ int main(int argc, char *argv[]) {
     total = solve_v1(array);
   }
 
-
+  if (mode == 2) {
+    total = solve_v2(array);
+  }
   printf("total is %d\n", total);
 }
+
+// 2564
+// 2552
+// 2554
+// 2565
+// 2566
