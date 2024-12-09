@@ -21,13 +21,9 @@ long solve_v1(int* buff, int len) {
     len --;
   }
 
-  /*printf("buffer = ");*/
-  /*print_int_buff(buff, len);*/
   int max_iter = 100000;
   int iter = 0;
   for (read_ptr = len-1; read_ptr >= 0; read_ptr -=2) {
-    /*printf("read ptr = %d\n", read_ptr);*/
-    /*printf("buff@read_ptr = %d\n", buff[read_ptr]); */
     // move on to the next item when there's no more memory in this chunk
     while(buff[read_ptr] > 0) {
 
@@ -39,9 +35,6 @@ long solve_v1(int* buff, int len) {
           checksum += (mem_addr * ((dest_ptr+1)/2));
           mem_addr ++;
         }
-        /*for (int a = 0; a < 1000; a++) {*/
-        /*  printf("%d, ", buff[a]);*/
-        /*}*/
         printf("\n");
         // potentially increment multiple times if there is 0 free space
         while(buff[dest_ptr] == 0 && dest_ptr < len) {
@@ -62,9 +55,7 @@ long solve_v1(int* buff, int len) {
         exit(1);
         break;
       }
-      /*printf("moving a chunk in position %d to %d\n", read_ptr, dest_ptr);*/
       checksum += (mem_addr * (read_ptr/2));
-      /*printf("checksum += (%d * %d) = %d\n", mem_addr, read_ptr / 2, (mem_addr * (read_ptr/2)));*/
       mem_addr ++;
       if (iter > max_iter) {
         printf("max iter reached\n");
@@ -88,17 +79,9 @@ long solve_v1(int* buff, int len) {
   if (dest_ptr % 2 == 1) {
     dest_ptr ++;
   }
-  printf("\n\n\n");
-  /*printf("done looping. dest_ptr = %d\n", dest_ptr);*/
-  /*printf("buffer = ");*/
-  /*print_int_buff(buff, len);*/
   while (dest_ptr <= len) {
-    /*printf("dest ptr = %d\n", dest_ptr);*/
     for (int i = buff[dest_ptr]; i > 0; i--) {
-      /*printf("buff[dest_ptr] = %d\n", buff[dest_ptr]);*/
-      /*printf("mem addr = %d\n", mem_addr);*/
       checksum += (mem_addr * dest_ptr);
-      /*printf("checksum += (%d * %d) = %ld\n", mem_addr, dest_ptr, checksum);*/
       mem_addr ++;
     } 
 
@@ -282,9 +265,6 @@ struct filechunk* trade_filechunk(struct filechunk* file_repr,
   temp.size -= size_diff;
   file_repr[read_ptr] = temp;
   
-  /*printf("memory before re-arranging:");*/
-  /*print_mem_repr_from_file(file_repr, *len);*/
-  /*printf("\n");*/
   // Insert a new blank space based on the size difference
   struct filechunk* file_repr_new = malloc((*len + 1) * sizeof(struct filechunk));
   if (file_repr == NULL) {
@@ -298,24 +278,13 @@ struct filechunk* trade_filechunk(struct filechunk* file_repr,
   f.is_file = 0;
   
   for (int i = 0; i <= write_ptr; i++) {
-    /*printf("writing ");*/
-    /*print_file_chunk(file_repr[i]);*/
-    /*printf("to position %d\n", i);*/
     file_repr_new[i] = file_repr[i];
   }
-  
-  /*printf("writing ");*/
-  /*print_file_chunk(f);*/
-  /*printf("to position %d\n", write_ptr+1);*/
 
   file_repr_new[write_ptr+1] = f;
 
   for (int i = write_ptr + 1; i < *len; i++) {
-    /*printf("writing ");*/
-    /*print_file_chunk(file_repr[i]);*/
-    /*printf("to position %d\n", i+1);*/
     if (i == read_ptr) {
-      /*printf("this is the original blank space\n");*/
     }
     file_repr_new[i+1] = file_repr[i];
   }
@@ -336,8 +305,6 @@ long solve_v3(int* buff, int len) {
 
   init_file_repr(buff, len, file_repr);
   
-  /*print_mem_repr_from_file(file_repr, len);*/
-  /*printf("\n");*/
   int write_ptr = 0;
   for (int read_ptr = len-1; read_ptr >= 0; read_ptr --) {
     for (int write_ptr = 0; write_ptr < read_ptr; write_ptr ++) {
@@ -345,15 +312,11 @@ long solve_v3(int* buff, int len) {
           (file_repr[read_ptr].id != -1) &&
           (file_repr[write_ptr].size >= file_repr[read_ptr].size)) {
           file_repr = trade_filechunk(file_repr, write_ptr, read_ptr, &len);
-          /*print_mem_repr_from_file(file_repr, len);*/
-          /*printf("\n");*/
           break;
         }
       }
   }
 
-  /*print_mem_repr_from_file(file_repr, len);*/
-  /*printf("\n");*/
   int index = 0;
   for (int i = 0; i < len; i++) {
 
@@ -435,10 +398,5 @@ int main(int argc, char *argv[]) {
   if (mode == 2) {
     solve_v3(buff, string_len);
   }
-  /*printf("total is %d\n", total);*/
 }
 
-// 509 -> too high
-// 338 -> too high
-// 4131028791675 -> too low 
-// 5777174756444 -> too low
