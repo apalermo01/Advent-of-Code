@@ -45,6 +45,7 @@ int count_nodes(struct array2d array,
 
   return count;
 }
+
 int find_antinodes(struct array2d array,
                    int r,
                    int c,
@@ -97,6 +98,98 @@ int solve_v1(struct array2d array) {
       }
     }
   } 
+
+  printf("num nodes = %d\n", total);
+  return 0;
+}
+
+int count_all_nodes(struct array2d array,
+                int r_second,
+                int c_second,
+                int r_first,
+                int c_first,
+                struct array2d* visited_array) {
+  int count = 0;
+  int node_r = r_first;
+  int node_c = c_first;
+  int mult = 0;
+
+  while (node_r >= 0 &&
+         node_r < array.numrows &&
+         node_c >= 0 &&
+         node_c < array.numcols) {
+    
+    if (get_value(*visited_array, node_r, node_c, 0) == 0) {
+      set_in_array(*visited_array, node_r, node_c, 1);
+      /*printf("found antinode at r=%d, c=%d\n", node_r, node_c);*/
+      count ++;
+    }
+    node_r = r_first + ((r_second - r_first) * mult);
+    node_c = c_first + ((c_second - c_first) * mult);
+    mult ++;
+  }
+
+  mult = 0;
+  node_r = r_first;
+  node_c = c_first;
+  while (node_r >= 0 &&
+         node_r < array.numrows &&
+         node_c >= 0 &&
+         node_c < array.numcols) {
+    
+    if (get_value(*visited_array, node_r, node_c, 0) == 0) {
+      set_in_array(*visited_array, node_r, node_c, 1);
+      /*printf("found antinode at r=%d, c=%d\n", node_r, node_c);*/
+      count ++;
+    }
+    node_r = r_first + ((r_second - r_first) * mult);
+    node_c = c_first + ((c_second - c_first) * mult);
+    mult --;
+  }
+  
+  return count;
+  return count;
+}
+int find_all_antinodes(struct array2d array,
+                   int r,
+                   int c,
+                   char ch,
+                   struct array2d visited_array) {
+
+  /*printf("finding antinodes at r=%d, c=%d\n", r, c);*/
+  int num_nodes = 0;
+  for (int r_loop = 0; r_loop < array.numrows; r_loop++) {
+    for (int c_loop = 0; c_loop < array.numcols; c_loop++) {
+
+      // get the tracker up to where we stopped at ch
+      if ((r_loop < r) || (((r_loop == r) && (c_loop <= c)))) {
+        continue;
+      }
+
+      // stop when we hit another antenna of the same frequency
+      if(get_value(array, r_loop, c_loop, 0) == ch){
+        /*printf("counting nodes at %d, %d\n", r_loop, c_loop);*/
+        num_nodes += count_all_nodes(array, r_loop, c_loop, r, c, &visited_array);
+
+      }
+    }
+  }
+
+  return num_nodes;
+}
+int solve_v2(struct array2d array) {
+  char ch;
+  int total = 0;
+  struct array2d visited_array = init_visited_array(array.numrows, array.numcols);
+  for (int r = 0; r < array.numrows; r++){
+    for (int c = 0; c < array.numcols; c++){
+      ch = get_value(array, r, c, 0);
+      if (ch != '.' && ch != '#') {
+        total += find_all_antinodes(array, r, c, ch, visited_array);
+      }
+    }
+  } 
+
   printf("num nodes = %d\n", total);
   return 0;
 }
@@ -148,6 +241,9 @@ int main(int argc, char *argv[]) {
   struct array2d array = file_to_array(fptr, linfo);
   if (mode == 1) {
     total = solve_v1(array);
+  }
+  if (mode == 2) {
+    total = solve_v2(array);
   }
 
   /*if (mode == 2) {*/
