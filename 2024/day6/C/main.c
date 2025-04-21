@@ -152,6 +152,88 @@ int solve_v1(struct array2d array) {
   return distinct_visited;
 }
 
+int check_for_loop(struct array2d* array,
+                   int obs_row,
+                   int obs_col,
+                   int orig_row,
+                   int orig_col,
+                   int orig_direction) {
+  struct guard g;
+  g.direction = orig_direction;
+  g.position_r = orig_row;
+  g.position_c = orig_col;
+
+  set_in_array(*array, obs_row, obs_col, 'O');
+  set_in_array(*array, g.position_r, g.position_c, '.');
+  struct array2d visited_array = init_visited_array(array->numrows, array->numcols);
+  int max_iter = 100000;
+  int count = 0;
+  while (g.position_r > 0 &&
+         g.position_r < array->numrows &&
+         g.position_c > 0 &&
+         g.position_c < array->numcols) {
+    
+    set_in_array(visited_array, g.position_r, g.position_c, 1);
+    move_guard(&g, array);
+    /*printf("move guard to %d, %d\n", g.position_r, g.position_c);*/
+    if (count > max_iter) {
+      printf( "max iter reached\n");
+      return 1;
+    }
+
+    count ++;
+  }
+  return 0;
+}
+int solve_v2(struct array2d array) {
+
+  // determine the path the guard took
+  struct guard g = init_guard(&array);
+  struct array2d visited_array = init_visited_array(array.numrows, array.numcols);
+  int r_orig = g.position_r;
+  int c_orig = g.position_c;
+  int d_orig = g.direction;
+
+  set_in_array(visited_array, g.position_r, g.position_c, 1);
+  set_in_array(array, g.position_r, g.position_c, '.');
+  int max_iter = 100000;
+  int count = 0;
+  while (g.position_r > 0 &&
+         g.position_r < array.numrows &&
+         g.position_c > 0 &&
+         g.position_c < array.numcols) {
+    
+    set_in_array(visited_array, g.position_r, g.position_c, 1);
+    move_guard(&g, &array);
+    /*printf("move guard to %d, %d\n", g.position_r, g.position_c);*/
+    if (count > max_iter) {
+      fprintf(stderr, "max iter reached\n");
+      return 0;
+    }
+
+    count ++;
+  }
+  
+  int num_options = 0;
+  for (int r = 0; r < visited_array.numrows; r++) {
+    for (int c = 0; c < visited_array.numcols; c++) {
+      struct array2d new_arr = make_array(array.numrows, array.numcols);
+      new_arr.arr = memcpy(new_arr.arr, array.arr, array.numrows * array.numcols * sizeof(char));
+      if (get_value(visited_array, r, c, 0) > 0) {
+        printf("checking %d, %d\n", r, c);
+        num_options += check_for_loop(&new_arr,
+                                      r,
+                                      c,
+                                      r_orig,
+                                      c_orig,
+                                      d_orig);
+      }
+    }
+  }
+  printf("num options = %d\n", num_options); 
+  return num_options;
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 3) {
     printf("usage: ./main input_file problem_section (1 or 2)\n");
@@ -201,8 +283,8 @@ int main(int argc, char *argv[]) {
     total = solve_v1(array);
   }
 
-  /*if (mode == 2) {*/
-  /*  total = solve_v2(array);*/
-  /*}*/
+  if (mode == 2) {
+    total = solve_v2(array);
+  }
   /*printf("total is %d\n", total);*/
 }

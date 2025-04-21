@@ -114,12 +114,14 @@ int set_in_array(struct array2d arr, int row, int col, char value) {
 
   // bounds-checking
   if (row >= arr.numrows) {
-    printf("OUT OF BOUNDS\n");
+    printf("OUT OF BOUNDS. Array has %d rows, tried to set row %d\n",
+           arr.numrows, row);
     return 1;
   }
 
   if (col >= arr.numcols) {
-    printf("OUT OF BOUNDS\n");
+    printf("OUT OF BOUNDS. Array has %d columns, tried to set column %d\n",
+           arr.numcols, col);
     return 1;
   }
 
